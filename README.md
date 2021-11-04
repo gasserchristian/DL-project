@@ -12,7 +12,7 @@ Brainstorming doc : https://docs.google.com/document/d/1ORe8bYeyK1qdgkFnvwzRyqKi
 
 | Date       | Comment                                              |
 | ---------- | ---------------------------------------------------- |
-| 20.12.2021 | Submit 1-page proposal, bonus 0.25 on proposal grade |
+| 11.12.2021 | Submit 1-page proposal, bonus 0.25 on proposal grade |
 | 20.12.2021 | Submit 1-page proposal                               |
 | 04.01.2021 | 5-page report+code, bonus 0.25                       |
 | 14.01.2021 | 5-page report+code without bonus                     |
