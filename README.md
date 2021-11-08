@@ -47,6 +47,11 @@ git branch
 # first fetch if want to checkout to a remote branch
 git fetch
 git checkout <branch name>
+
+# Merge branchA into branchB and continue on branchB
+git fetch
+git checkout branchB
+git merge branchA
 ```
 
 Cheatsheet on: [git-cheat-sheet.pdf (gitlab.com)](https://about.gitlab.com/images/press/git-cheat-sheet.pdf)
