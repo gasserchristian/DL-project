@@ -2,7 +2,7 @@
 
 ## Members
 
-- Vasilii Kopylovvkopylov@student.ethz.ch
+- Vasilii Kopylov vkopylov@student.ethz.ch
 - Jakub Mandula jmandula@student.ethz.ch
 - Emiljo Mehillaj emehillaj@student.ethz.ch
 - Christian Gasser chgasser@student.ethz.ch
