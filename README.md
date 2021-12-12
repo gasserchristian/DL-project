@@ -2,11 +2,18 @@
 
 ## Members
 
+- Vasilii Kopylovvkopylov@student.ethz.ch
 - Jakub Mandula jmandula@student.ethz.ch
 - Emiljo Mehillaj emehillaj@student.ethz.ch
 - Christian Gasser chgasser@student.ethz.ch
 
 Brainstorming doc : https://docs.google.com/document/d/1ORe8bYeyK1qdgkFnvwzRyqKiPX85h4kklDUvl_49D6g/edit#
+
+## Proposal
+
+Overleaf link: [https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec](https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec)
+
+
 
 ## Schedule
 
@@ -21,6 +28,8 @@ Brainstorming doc : https://docs.google.com/document/d/1ORe8bYeyK1qdgkFnvwzRyqKi
 
 - project is 30% of DL class
   - 10% of the project grade is the proposal
+
+
 
 ## Further informations
 
