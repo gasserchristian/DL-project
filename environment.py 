@@ -1,43 +1,36 @@
 # This files serves as the environment for policy gradient estimators 
+# Games and gradient estimators are imlemented as instances of different classes 
 
 # TODO list:
-# 1) make cart_pole.py compatible with this environment 
-# 2) implement gradient estimators as instances of different classes 
-# 3) change NN architecture in cartpole.py to the one used in papers about policy estimators 
-#    in order to make our results comparable with others 
-# 4) evaluate all gradient estimators on cartpole
-# 5) add other games (which one will most likely show the supremacy of our PAGE estimators?) 
+# - performance plotting 
+
+from reinforce import reinforce
+from cart_pole import cart_pole 
 
 class Environment:
-	def __init__(self): 
-		training_finished = False
-		training_rounds = 100000
-
 	def plot(self, game): 
-		# TODO: plot the perfomance of all estimators for the selected RL task 
+		# TODO: plot the perfomance for all estimators on the selected game using the data from CSV files 
 		pass 
 
 	def train(self, estimator, game): 
-		# trains the chosen estimator on a selected RL task and generates the file consisting of following 
-		# 3d tuples: (number of trajectories, average return, 90% confidence interval), which we use later  
-		# for plotting the performance   
-		game.train(estimator, training_rounds)
-
+		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting 
+		# of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
+		result = game.generate_data(estimator)
 
 if __name__ == '__main__':
 	environment = Environment()
 	
 	estimators = [
-		reinforcer(),
-		gpomdp(),
-		storm(),
-		page()
+		reinforce()
+		#gpomdp(),
+		#storm(),
+		#page()
 		] 
 
 	games = [
-		cart_pole(),
-		mountain_car(),
-		lunar_rider()
+		cart_pole()
+		#mountain_car(),
+		#lunar_rider()
 		]
 
 	print("Starting training")
@@ -45,7 +38,7 @@ if __name__ == '__main__':
 		for game in games:
 			environment.train(estimator, game) 
 
-	print("Starting plotting the performance")
+	print("Plotting the performance")
 	for game in games:
 		environment.plot(game)
 
