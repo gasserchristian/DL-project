@@ -1,5 +1,13 @@
 # DL-project
 
+## Structure 
+environment.py - main script that generates data for different games/estimators and plot it  
+game.py - interface for games classes
+estimator.py - interface for estimator classes 
+reinforce.py - reinforce estimator 
+cart_pole.py - cart-pole game 
+
+
 ## Members
 
 - Vasilii Kopylov vkopylov@student.ethz.ch
