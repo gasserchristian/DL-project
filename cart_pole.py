@@ -1,8 +1,8 @@
 """
-The implementation of the cartpole game 
+The implementation of the cartpole game
 """
 
-from game import game 
+from game import game
 
 import gym
 import numpy as np
@@ -23,19 +23,19 @@ gamma=1.0
 print_every=100
 
 class Policy(nn.Module):
-	# neural network for the policy 
-	# TODO: change NN architecture to the optimal for the cart-pole game 
+	# neural network for the policy
+	# TODO: change NN architecture to the optimal for the cart-pole game
 	def __init__(self, state_size=4, action_size=2, hidden_size=32):
 		super(Policy, self).__init__()
 		self.fc1 = nn.Linear(state_size, hidden_size)
 		self.fc2 = nn.Linear(hidden_size, action_size)
-        
+
 	def forward(self, state):
 		x = F.relu(self.fc1(state))
 		x = self.fc2(x)
 		# we just consider 1 dimensional probability of action
 		return F.softmax(x, dim=1)
-    
+
 	def act(self, state):
 		state = torch.from_numpy(state).float().unsqueeze(0).to(device)
 		probs = self.forward(state).cpu()
@@ -45,7 +45,7 @@ class Policy(nn.Module):
 
 class cart_pole(game):
 	def __init__(self):
-		self.policy = Policy().to(device) # NN that represents the policy we optimize over 
+		self.policy = Policy().to(device) # NN that represents the policy we optimize over
 		self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
 
 	def generate_data(self, estimator, number_of_runs=5, number_of_episodes=2000):
@@ -73,7 +73,7 @@ class cart_pole(game):
 			# Calculate total expected reward
 			scores_deque.append(sum(rewards))
 			scores.append(sum(rewards))
-	        
+
 			# Recalculate the total reward applying discounted factor
 			discounts = [gamma ** i for i in range(len(rewards) + 1)]
 			R = sum([a * b for a,b in zip(discounts, rewards)])
@@ -83,23 +83,19 @@ class cart_pole(game):
 			if np.mean(scores_deque) >= 195.0:
 				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
 				break
+		'''
+		np.savetxt('path',scores)
+		'''
 		return scores
 
 	def optimizer_step(self, estimator, trajectory):
 		"""
-		computes the policy loss using 
+		computes the policy loss using
 		"""
 
-		policy_loss = estimator.compute_loss(trajectory) # computes policy loss for one trajectory 
+		policy_loss = estimator.compute_loss(trajectory) # computes policy loss for one trajectory
 
-		# backprop 
+		# backprop
 		self.optimizer.zero_grad()
 		policy_loss.backward()
 		self.optimizer.step()
-
-
-
-
-
-
-
