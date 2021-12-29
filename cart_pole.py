@@ -52,50 +52,47 @@ class cart_pole(game):
 		"""
 		generate csv table consisting of 3d tuples (number of episodes, return, CI)
 		"""
+		scores_runs = []
+		for i in range(number_of_runs):
+			n_episodes = number_of_episodes
+			scores_deque = deque(maxlen=100)
+			scores = []
+			for e in range(1, n_episodes):
+				saved_log_probs = []
+				rewards = []
+				state = env.reset()
+				# Collect trajectory
+				for t in range(max_t):
+				# Sample the action from current policy
+					action, log_prob = self.policy.act(state)
+					saved_log_probs.append(log_prob)
+					state, reward, done, _ = env.step(action)
+					rewards.append(reward)
+					if done:
+						break
+				# Calculate total expected reward
+				scores_deque.append(sum(rewards))
+				scores.append(sum(rewards))
 
-		statistics = {
-			'average': [],
-			'confidence': []
-		}
+				# Recalculate the total reward applying discounted factor
+				discounts = [gamma ** i for i in range(len(rewards) + 1)]
+				R = sum([a * b for a,b in zip(discounts, rewards)])
 
-		n_episodes = number_of_episodes
-		scores_deque = deque(maxlen=100)
-		scores = []
-		for e in range(1, n_episodes):
-			saved_log_probs = []
-			rewards = []
-			state = env.reset()
-			# Collect trajectory
-			for t in range(max_t):
-			# Sample the action from current policy
-				action, log_prob = self.policy.act(state)
-				saved_log_probs.append(log_prob)
-				state, reward, done, _ = env.step(action)
-				rewards.append(reward)
-				if done:
+				trajectory = [saved_log_probs, [R]]
+				self.optimizer_step(estimator, trajectory)
+				if np.mean(scores_deque) >= 195.0:
+					print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
 					break
-			# Calculate total expected reward
-			scores_deque.append(sum(rewards))
-			scores.append(sum(rewards))
-
-			# Recalculate the total reward applying discounted factor
-			discounts = [gamma ** i for i in range(len(rewards) + 1)]
-			R = sum([a * b for a,b in zip(discounts, rewards)])
-
-			# Add data
-			statistics['average'].append(np.mean(rewards))
-			statistics['confidence'].append(np.std(rewards))
-
-			trajectory = [saved_log_probs, [R]]
-			self.optimizer_step(estimator, trajectory)
-			if np.mean(scores_deque) >= 195.0:
-				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
-				break
-		
-		episodes = np.full(len(statistics['average']),0)
-		episodes[0] = number_of_episodes
-		np.savetxt('data--cartpole_'+type(estimator).__name__+'.txt',np.vstack([episodes,statistics['average'],statistics['confidence']]))
-		
+			scores_runs.append(scores)
+		scores_length = np.array([len(item) for item in scores_runs])
+		scores_np = np.full((len(scores_length),scores_length.max()),np.nan)
+		for i,maximum in enumerate(scores_length):
+			scores_np[i,:maximum] = scores_runs[i]
+		scores_np = np.full((2,maximum))
+		scores_np[0,:] = np.nanmean(scores_np,axis=0)
+		scores_np[1,:] = np.nanstd(scores_np,axis=0)
+		np.savetxt('data--cartpole_'+type(estimator).__name__+'__CI-mean.txt',scores_np)
+		np.savetxt('data--cartpole_'+type(estimator).__name__+'__episodes.txt',scores_length)
 		return scores
 
 	def optimizer_step(self, estimator, trajectory):

@@ -19,17 +19,17 @@ class Environment:
 		games = {
 			cart_pole: 'cartpole'
 		}
-		data = [np.loadtxt('data--'+games[game]+'_'+estim.__name__+'.txt') for estim in estimators]
+		data = [np.loadtxt('data--'+games[game]+'_'+estim.__name__+'__CI-mean.txt') for estim in estimators]
 		fig,ax = plt.subplots(figsize=(10,5))
 		ax.set_title(titles[game])
 		ax.set_xlabel("episodes")
 		ax.set_ylabel("reward")
 		for i,item in enumerate(data):
-			plt.plot(data[i][1,:])
+			plt.plot(item[0,:])
 			plt.fill_between(
-				np.arange(data[i][1,:].shape[0]),
-				data[i][1,:]-data[i][2,:],
-			    data[i][1,:]+data[i][2,:],
+				np.arange(item[0,:].shape[0]),
+				item[0,:]-item[1,:],
+			    item[0,:]+item[1,:],
 			    alpha=0.2
 			)
 		fig.legend(
