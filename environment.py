@@ -9,39 +9,35 @@ from cart_pole import cart_pole
 
 class Environment:
 	def plot(self,game):
-		# TODO: plot the perfomance for all estimators on the selected game using the data from CSV files
-		pass
-		'''
-		mean = np.loadtxt('pathMean.txt')
-		std = np.loadtxt('pathStd.txt')
-		fig,ax = plt.subplots(figsize=(10,10))
-		ax.set_title("placeholder")
-		ax.set_xlabel("epoch")
-		ax.set_ylabel("Reward")
-		for i in range(5):
-			plt.plot(mean[i])
+		titles = {
+			cart_pole: 'Cart pole'
+			#, mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
+		}
+		estimators = [
+			type(reinforce).__name__
+		]
+		games = {
+			cart_pole: 'cartpole'
+		}
+		data = [np.loadtxt('data--'+games[game]+'_'+estim.__name__+'.txt') for estim in estimators]
+		fig,ax = plt.subplots(figsize=(10,5))
+		ax.set_title(titles[game])
+		ax.set_xlabel("episodes")
+		ax.set_ylabel("reward")
+		for i,item in enumerate(data):
+			plt.plot(data[i][1,:])
 			plt.fill_between(
-				mean[i]-std[i],
-			    mean[i]+std[i],
+				np.arange(data[i][1,:].shape[0]),
+				data[i][1,:]-data[i][2,:],
+			    data[i][1,:]+data[i][2,:],
 			    alpha=0.2
 			)
 		fig.legend(
-		    [
-		        'placeholder',
-		        'placeholder',
-		        'placeholder',
-		        'placeholder',
-		        'placeholder'
-		    ]
+		    estimators
 		)
 		plt.grid()
-		plt.savefig('dummy-name.svg')
-
-		# QUESTIONS :
-		- title
-		- save or show ?
-		- game argument -> text ?
-		'''
+		plt.savefig(titles[game]+'.svg')
+		plt.show()
 
 	def train(self, estimator, game):
 		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting

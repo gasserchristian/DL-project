@@ -50,9 +50,13 @@ class cart_pole(game):
 
 	def generate_data(self, estimator, number_of_runs=5, number_of_episodes=2000):
 		"""
-		generate csv table consisting of 3d tuples (return, number of episodes, CI)
+		generate csv table consisting of 3d tuples (number of episodes, return, CI)
 		"""
-		# TODO: add generation of the CSV table
+
+		statistics = {
+			'average': [],
+			'confidence': []
+		}
 
 		n_episodes = number_of_episodes
 		scores_deque = deque(maxlen=100)
@@ -78,14 +82,20 @@ class cart_pole(game):
 			discounts = [gamma ** i for i in range(len(rewards) + 1)]
 			R = sum([a * b for a,b in zip(discounts, rewards)])
 
+			# Add data
+			statistics['average'].append(np.mean(rewards))
+			statistics['confidence'].append(np.std(rewards))
+
 			trajectory = [saved_log_probs, [R]]
 			self.optimizer_step(estimator, trajectory)
 			if np.mean(scores_deque) >= 195.0:
 				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
 				break
-		'''
-		np.savetxt('path',scores)
-		'''
+		
+		episodes = np.full(len(statistics['average']),0)
+		episodes[0] = number_of_episodes
+		np.savetxt('data--cartpole_'+type(estimator).__name__+'.txt',np.vstack([episodes,statistics['average'],statistics['confidence']]))
+		
 		return scores
 
 	def optimizer_step(self, estimator, trajectory):
