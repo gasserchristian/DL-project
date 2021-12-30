@@ -3,8 +3,10 @@
 
 # TODO list:
 # - performance plotting 
+# - resolve object issue
 
 from reinforce import reinforce
+from gpomdp import gpomdp 
 from cart_pole import cart_pole 
 
 class Environment:
@@ -21,8 +23,8 @@ if __name__ == '__main__':
 	environment = Environment()
 	
 	estimators = [
-		reinforce()
-		#gpomdp(),
+		#reinforce(),
+		gpomdp()
 		#storm(),
 		#page()
 		] 

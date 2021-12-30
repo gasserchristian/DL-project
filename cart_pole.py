@@ -73,13 +73,10 @@ class cart_pole(game):
 			# Calculate total expected reward
 			scores_deque.append(sum(rewards))
 			scores.append(sum(rewards))
-	        
-			# Recalculate the total reward applying discounted factor
-			discounts = [gamma ** i for i in range(len(rewards) + 1)]
-			R = sum([a * b for a,b in zip(discounts, rewards)])
 
-			trajectory = [saved_log_probs, [R]]
+			trajectory = {'probs': saved_log_probs, 'rewards': rewards} 
 			self.optimizer_step(estimator, trajectory)
+
 			if np.mean(scores_deque) >= 195.0:
 				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
 				break
@@ -87,10 +84,10 @@ class cart_pole(game):
 
 	def optimizer_step(self, estimator, trajectory):
 		"""
-		computes the policy loss using 
+		computes the policy loss  
 		"""
 
-		policy_loss = estimator.compute_loss(trajectory) # computes policy loss for one trajectory 
+		policy_loss = estimator.compute_loss(trajectory, gamma) # computes policy loss for one trajectory 
 
 		# backprop 
 		self.optimizer.zero_grad()
