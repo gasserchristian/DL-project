@@ -4,13 +4,14 @@ import gym
 import torch
 from torch import nn
 from torch import optim
-from optimizers import SVRG_optim, SVRG_Snapshot
+from optimizers import SVRG_optim, SVRG_Snapshot, SARAH_optim
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class policy_network():
     def __init__(self, env):
@@ -209,7 +210,7 @@ def gpomdp(environment, policy_estimator, num_episodes=2000,
     return total_rewards
 
 
-def SVRG(environment, environment_snapshot, policy_estimator, inner_policy, num_episodes=2000, num_inner_episodes=500,
+def SVRG(environment, environment_snapshot, policy_estimator, inner_policy, num_episodes=2000, num_inner_episodes=400,
          batch_size=10, gamma=0.99):
     # Set up lists to hold results
     total_rewards = []
@@ -359,6 +360,9 @@ def SVRG(environment, environment_snapshot, policy_estimator, inner_policy, num_
                     # Calculate loss
                     logprob = torch.log(
                         policy_estimator.predict_actions(state_tensor))
+
+
+
                     selected_logprobs = reward_tensor * \
                                         torch.gather(logprob, 1,
                                                      torch.unsqueeze(action_tensor, 1)).squeeze()
@@ -395,6 +399,372 @@ def SVRG(environment, environment_snapshot, policy_estimator, inner_policy, num_
     return total_rewards
 
 
+def SVRG_1(environment, environment_snapshot, policy_estimator, inner_policy, batch_size = 100, num_epochs = 50, mini_batch_size = 10, epoch_size = 5, num_episodes=2000, num_inner_episodes=400, gamma=0.99):
+    # Set up lists to hold results
+    total_rewards = []
+    batch_rewards = []
+    batch_actions = []
+    batch_states = []
+    batch_counter = 1
+
+
+
+    # Define optimizerS
+    optimizer = SVRG_optim(policy_estimator.network.parameters(),
+                           lr=0.001)
+    optimizer_snap = SVRG_Snapshot(inner_policy.network.parameters())
+
+    action_space = np.arange(environment.action_space.n)
+
+
+    # epoch
+
+    for _ in np.arange(0,num_epochs):
+        # inner loop to calculate mean gradient
+        inner_it = 0
+        while inner_it < batch_size:
+            s_0_snap = environment_snapshot.reset()
+            states_snap = []
+            rewards_snap = []
+            actions_snap = []
+            avg_rewards_snap = []
+            done_snap = False
+            while done_snap == False:
+                # Get actions and convert to numpy array
+                action_probs_snap = inner_policy.predict_actions(
+                    s_0_snap).detach().numpy()
+
+                # sample an action according to the correct probabilities
+                action_snap = np.random.choice(action_space,
+                                               p=action_probs_snap)
+
+                # taking a step
+                s_1_snap, r_snap, done_snap, _ = environment_snapshot.step(action_snap)
+
+                # appending states, rewards, actions involved in the episode
+                states_snap.append(s_0_snap)
+                rewards_snap.append(r_snap)
+                actions_snap.append(action_snap)
+                s_0_snap = s_1_snap
+
+                # calculating the state-dependent average rewards (baseline)
+                avg_rewards_snap.append(np.expand_dims(np.mean(rewards_snap, axis=0), axis=0))
+
+                # If done, batch data
+                if done_snap:
+
+                    # log the batch (discounted) rewards - baseline
+                    batch_rewards_snap.extend(np.reshape(discount_rewards(
+                        rewards_snap, gamma), (-1,)) - np.reshape(np.asarray(avg_rewards_snap), (-1,)))
+                    batch_states_snap.extend(states_snap)
+                    batch_actions_snap.extend(actions_snap)
+                    batch_counter_snap += 1
+                    total_rewards_snap.append(sum(rewards_snap))
+
+                    # If batch is complete, update target network
+                    if batch_counter_snap == batch_size:
+                        # convert the batch states, rewards, actions to torch tensors
+                        state_tensor_snap = torch.FloatTensor(batch_states_snap)
+                        reward_tensor_snap = torch.FloatTensor(
+                            batch_rewards_snap)
+                        action_tensor_snap = torch.LongTensor(
+                            batch_actions_snap)
+
+                        # Calculate loss
+                        logprob_snap = torch.log(
+                            inner_policy.predict_actions(state_tensor_snap))
+                        selected_logprobs_snap = reward_tensor_snap * \
+                                                 torch.gather(logprob_snap, 1,
+                                                              torch.unsqueeze(action_tensor_snap, 1)).squeeze()
+                        loss_snap = -selected_logprobs_snap.mean()
+
+                        # Calculate gradients
+                        loss_snap.backward()
+
+                        batch_rewards_snap = []
+                        batch_actions_snap = []
+                        batch_states_snap = []
+                        batch_counter_snap = 1
+                    inner_it += 1
+        # pass the current parameters of snap_optimizer to main SVRG optimizer
+        u = optimizer_snap.get_param_groups()
+        optimizer.set_u(u)
+
+        # num of episodes
+        ep = 0
+
+        while ep < epoch_size:
+            total_rewards_snap = []
+            batch_rewards_snap = []
+            batch_actions_snap = []
+            batch_states_snap = []
+            batch_counter_snap = 1
+
+            optimizer_snap.zero_grad()  # zero out the gradients accumulated by optimizer_snap in the beginning of each outer loop
+
+            s_0 = environment.reset()
+            states = []
+            rewards = []
+            actions = []
+            avg_rewards = []
+            done = False
+            while done == False:
+                # Get actions and convert to numpy array
+                action_probs = policy_estimator.predict_actions(
+                    s_0).detach().numpy()
+
+                # sample an action according to the correct probabilities
+                action = np.random.choice(action_space,
+                                          p=action_probs)
+
+                # taking a step
+                s_1, r, done, _ = environment.step(action)
+
+                # appending states, rewards, actions involved in the episode
+                states.append(s_0)
+                rewards.append(r)
+                actions.append(action)
+                s_0 = s_1
+
+                # calculating the state-dependent average rewards (baseline)
+                avg_rewards.append(np.expand_dims(np.mean(rewards, axis=0), axis=0))
+
+                # If done, batch data
+                if done:
+                    # log the batch (discounted) rewards - baseline
+                    batch_rewards.extend(np.reshape(discount_rewards(
+                        rewards, gamma), (-1,)) - np.reshape(np.asarray(avg_rewards), (-1,)))
+                    batch_states.extend(states)
+                    batch_actions.extend(actions)
+                    batch_counter += 1
+                    total_rewards.append(sum(rewards))
+
+                    # If batch is complete, update network
+                    if batch_counter == mini_batch_size:
+                        optimizer.zero_grad()
+
+                        # convert the batch states, rewards, actions to torch tensors
+                        state_tensor = torch.FloatTensor(batch_states)
+                        reward_tensor = torch.FloatTensor(
+                            batch_rewards)
+                        action_tensor = torch.LongTensor(
+                            batch_actions)
+
+                        # Calculate loss
+                        logprob = torch.log(
+                            policy_estimator.predict_actions(state_tensor))
+
+
+
+                        selected_logprobs = reward_tensor * \
+                                            torch.gather(logprob, 1,
+                                                         torch.unsqueeze(action_tensor, 1)).squeeze()
+                        loss = -selected_logprobs.mean()
+
+                        # Calculate gradients
+                        loss.backward()
+
+                        # see model_snap outputs and backpropagate the gradients
+                        optimizer_snap.zero_grad()
+                        logprob_1 = torch.log(
+                            inner_policy.predict_actions(state_tensor))
+                        selected_logprobs_1 = reward_tensor * \
+                                              torch.gather(logprob_1, 1,
+                                                           torch.unsqueeze(action_tensor, 1)).squeeze()
+                        loss_1 = -selected_logprobs_1.mean()
+                        loss_1.backward()
+
+                        # Apply gradients
+                        optimizer.step(optimizer_snap.get_param_groups())
+                        batch_rewards = []
+                        batch_actions = []
+                        batch_states = []
+                        batch_counter = 1
+
+                    avg_rewards = np.mean(total_rewards[-100:])
+                    # Print running average
+                    print("Episode : %d, Average return of last 100: %.2f" % (ep + 1, avg_rewards), end='\r')
+                    ep += 1
+
+            # update the snapshot params
+            optimizer_snap.set_param_groups(optimizer.get_param_groups())
+
+    return total_rewards
+
+
+def SARAH(environment, policy_estimator, num_episodes=2000, num_inner_episodes=250,
+         batch_size=10, gamma=0.99):
+    # Set up lists to hold results
+    total_rewards = []
+    batch_rewards = []
+    batch_actions = []
+    batch_states = []
+    batch_counter = 1
+
+    # Define optimizerS
+    optimizer = SARAH_optim(policy_estimator.network.parameters(),
+                           lr=0.001)
+    optimizer.prev_param_groups = optimizer.param_groups
+    action_space = np.arange(environment.action_space.n)
+
+    # number of episodes
+    ep = 0
+
+    while ep < num_episodes:
+        inner_it = 0
+        total_rewards_inner = []
+        batch_rewards_inner = []
+        batch_actions_inner = []
+        batch_states_inner = []
+        batch_counter_inner = 1
+        optimizer.zero_grad()  # zero out the gradients accumulated by optimizer_snap in the beginning of each outer loop
+
+        # inner loop to calculate mean gradient
+        while inner_it < num_inner_episodes:
+            s_0_inner = environment.reset()
+            states_inner = []
+            rewards_inner = []
+            actions_inner = []
+            avg_rewards_inner = []
+            done_inner = False
+            while done_inner == False:
+                # Get actions and convert to numpy array
+                action_probs = policy_estimator.predict_actions(
+                    s_0_inner).detach().numpy()
+
+                # sample an action according to the correct probabilities
+                action_inner = np.random.choice(action_space,
+                                               p=action_probs)
+
+                # taking a step
+                s_1_inner, r_inner, done_inner, _ = environment.step(action_inner)
+
+                # appending states, rewards, actions involved in the episode
+                states_inner.append(s_0_inner)
+                rewards_inner.append(r_inner)
+                actions_inner.append(action_inner)
+                s_0_inner = s_1_inner
+
+                # calculating the state-dependent average rewards (baseline)
+                avg_rewards_inner.append(np.expand_dims(np.mean(rewards_inner, axis=0), axis=0))
+
+                # If done, batch data
+                if done_inner:
+
+                    # log the batch (discounted) rewards - baseline
+                    batch_rewards_inner.extend(np.reshape(discount_rewards(
+                        rewards_inner, gamma), (-1,)) - np.reshape(np.asarray(avg_rewards_inner), (-1,)))
+                    batch_states_inner.extend(states_inner)
+                    batch_actions_inner.extend(actions_inner)
+                    batch_counter_inner += 1
+                    total_rewards_inner.append(sum(rewards_inner))
+
+                    # If batch is complete, update target network
+                    if batch_counter_inner == batch_size:
+                        # convert the batch states, rewards, actions to torch tensors
+                        state_tensor_inner = torch.FloatTensor(batch_states_inner)
+                        reward_tensor_inner = torch.FloatTensor(
+                            batch_rewards_inner)
+                        action_tensor_inner = torch.LongTensor(
+                            batch_actions_inner)
+
+                        # Calculate loss
+                        logprob_inner = torch.log(
+                            policy_estimator.predict_actions(state_tensor_inner))
+                        selected_logprobs_inner = reward_tensor_inner * \
+                                                 torch.gather(logprob_inner, 1,
+                                                              torch.unsqueeze(action_tensor_inner, 1)).squeeze()
+                        loss_inner = -selected_logprobs_inner.mean()
+
+                        # Calculate gradients
+                        loss_inner.backward()
+
+                        batch_rewards_inner = []
+                        batch_actions_inner = []
+                        batch_states_inner = []
+                        batch_counter_inner = 1
+                    inner_it += 1
+
+        # pass the current parameters of snap_optimizer to main SVRG optimizer
+        v = optimizer.get_param_groups()
+        optimizer.set_v(v)
+
+        s_0 = environment.reset()
+        states = []
+        rewards = []
+        actions = []
+        avg_rewards = []
+        done = False
+        while done == False:
+            # Get actions and convert to numpy array
+            action_probs = policy_estimator.predict_actions(
+                s_0).detach().numpy()
+
+            # sample an action according to the correct probabilities
+            action = np.random.choice(action_space,
+                                      p=action_probs)
+
+            # taking a step
+            s_1, r, done, _ = environment.step(action)
+
+            # appending states, rewards, actions involved in the episode
+            states.append(s_0)
+            rewards.append(r)
+            actions.append(action)
+            s_0 = s_1
+
+            # calculating the state-dependent average rewards (baseline)
+            avg_rewards.append(np.expand_dims(np.mean(rewards, axis=0), axis=0))
+
+            # If done, batch data
+            if done:
+                # log the batch (discounted) rewards - baseline
+                batch_rewards.extend(np.reshape(discount_rewards(
+                    rewards, gamma), (-1,)) - np.reshape(np.asarray(avg_rewards), (-1,)))
+                batch_states.extend(states)
+                batch_actions.extend(actions)
+                batch_counter += 1
+                total_rewards.append(sum(rewards))
+
+                # If batch is complete, update network
+                if batch_counter == batch_size:
+                    optimizer.zero_grad()
+
+                    # convert the batch states, rewards, actions to torch tensors
+                    state_tensor = torch.FloatTensor(batch_states)
+                    reward_tensor = torch.FloatTensor(
+                        batch_rewards)
+                    action_tensor = torch.LongTensor(
+                        batch_actions)
+
+                    # Calculate loss
+                    logprob = torch.log(
+                        policy_estimator.predict_actions(state_tensor))
+
+                    selected_logprobs = reward_tensor * \
+                                        torch.gather(logprob, 1,
+                                                     torch.unsqueeze(action_tensor, 1)).squeeze()
+                    loss = -selected_logprobs.mean()
+
+                    # Calculate gradients
+                    loss.backward()
+
+                    # Apply gradients
+                    optimizer.step()
+                    batch_rewards = []
+                    batch_actions = []
+                    batch_states = []
+                    batch_counter = 1
+
+                avg_rewards = np.mean(total_rewards[-100:])
+                # Print running average
+                print("Episode : %d, Average return of last 100: %.2f" % (ep + 1, avg_rewards), end='\r')
+                ep += 1
+
+    return total_rewards
+
+
+
 env = gym.make('CartPole-v0')
 env_snap = gym.make('CartPole-v0')
 policy_est = policy_network(env)
@@ -402,6 +772,7 @@ inn_policy = policy_network(env)
 # rewards = gpomdp(env, policy_est)
 # rewards = reinforce(env, policy_est)
 rewards_result = SVRG(env, env_snap, policy_est, inn_policy)
+# rewards_result = SARAH(env, policy_est)
 plt.plot(rewards_result)
-plt.savefig('SVRG.png')
+# plt.savefig('SVRG.png')
 plt.show()

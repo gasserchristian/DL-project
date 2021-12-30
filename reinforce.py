@@ -14,3 +14,4 @@ class reinforce(estimator):
 		# After that, we concatenate whole policy loss in 0th dimension
 		policy_loss = torch.cat(policy_loss).sum()
 		return policy_loss
+
