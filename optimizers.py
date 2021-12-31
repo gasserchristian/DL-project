@@ -111,7 +111,6 @@ class SARAH_optim(Optimizer):
     def __init__(self, params, lr, weight_decay=0):
         print("Optimizer: SARAH")
         self.v = None
-        self.prev_param_groups = None
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if weight_decay < 0.0:
@@ -119,11 +118,6 @@ class SARAH_optim(Optimizer):
         defaults = dict(lr=lr, weight_decay=weight_decay)
         self.param_list = []
         super(SARAH_optim, self).__init__(params, defaults)
-
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-                state['step'] = 0
 
     def get_param_groups(self):
         return self.param_groups
@@ -139,32 +133,49 @@ class SARAH_optim(Optimizer):
             for v, new_v in zip(v_group['params'], new_group['params']):
                 v.grad = new_v.grad.clone()
 
-    def step(self):
+    def step(self, prev_params):
         """Performs a single optimization step.
         """
-
-        self.param_list.append(self.param_groups)
-        for group, new_group, v_group in zip(self.prev_param_groups, self.param_groups, self.v):
+        for group, prev_group, v_group, d_group in zip(self.param_groups, prev_params, self.v, self.prev_param_groups):
             weight_decay = group['weight_decay']
-            for p, q, v in zip(group['params'], new_group['params'], v_group['params']):
+
+            for p, q, v, d in zip(group['params'], prev_group['params'], v_group['params'], d_group['params']):
                 if p.grad is None:
                     continue
                 if q.grad is None:
                     continue
 
-                # main SARAH gradient update
-                new_v = q.grad.data - p.grad.data + v.grad.data
+                # core SVRG gradient update
+                new_v = p.grad.data - q.grad.data + v.grad.data
 
-                # update prev gradients
-                p.grad = q.grad.clone()
-
+                d.data[:] = p.data[:]
                 if weight_decay != 0:
-                    new_v.add_(weight_decay, q.data)
-                q.data.add_(-group['lr'], new_v)
+                    new_v.add_(weight_decay, p.data)
+                p.data.add_(-group['lr'], new_v)
 
-                self.param_list.append(q)
-                # update v
-                v.grad.data = new_v.clone()
+                v.grad = new_v.clone()
+
+class SARAH_Snapshot(Optimizer):
+    r"""Optimization class for calculating the mean gradient (snapshot) of all samples.
+    Args:
+        params (iterable): iterable of parameters to optimize or dicts defining
+            parameter groups
+        lr (float): learning rate
+    """
+
+    def __init__(self, params):
+        defaults = dict()
+        super(SARAH_Snapshot, self).__init__(params, defaults)
+
+    def get_param_groups(self):
+        return self.param_groups
+
+    def set_param_groups(self, new_params):
+        """Copies the parameters from the other optimizer.
+        """
+        for group, new_group in zip(self.param_groups, new_params):
+            for p, q in zip(group['params'], new_group['params']):
+                p.data[:] = q.data[:]
 
 
 
@@ -221,7 +232,7 @@ class STORM_optim(Optimizer):
                 q.data.add_(-group['lr'], new_v)
 
                 # update v
-                v.grad.data = new_v.clone()
+                v.grad = new_v.clone()
 
                 # update prev gradients
                 p.grad.data[:] = q.grad.data[:]
