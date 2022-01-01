@@ -49,15 +49,18 @@ class cart_pole(game):
 		self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
 
 	def generate_data(self, estimator, number_of_runs=5, number_of_episodes=2000):
+		import matplotlib.pyplot as plt
 		"""
 		generate csv table consisting of 3d tuples (number of episodes, return, CI)
 		"""
-		scores_runs = []
-		for i in range(number_of_runs):
-			n_episodes = number_of_episodes
-			scores_deque = deque(maxlen=100)
-			scores = []
-			for e in range(1, n_episodes):
+		scores_stat = []
+		n_episodes = number_of_episodes
+		scores_deque = deque(maxlen=100)
+		scores = []
+		n_episodes = 20
+		for e in range(1, n_episodes):
+			run_tab = []
+			for run in range(number_of_runs):
 				saved_log_probs = []
 				rewards = []
 				state = env.reset()
@@ -70,29 +73,38 @@ class cart_pole(game):
 					rewards.append(reward)
 					if done:
 						break
-				# Calculate total expected reward
-				scores_deque.append(sum(rewards))
-				scores.append(sum(rewards))
+				run_tab.append(sum(rewards))
+			scores_stat.append(run_tab)
+			# Calculate total expected reward
+			scores_deque.append(sum(rewards))
+			scores.append(sum(rewards))
+			# Recalculate the total reward applying discounted factor
+			discounts = [gamma ** i for i in range(len(rewards) + 1)]
+			R = sum([a * b for a,b in zip(discounts, rewards)])
 
-				# Recalculate the total reward applying discounted factor
-				discounts = [gamma ** i for i in range(len(rewards) + 1)]
-				R = sum([a * b for a,b in zip(discounts, rewards)])
-
-				trajectory = [saved_log_probs, [R]]
-				self.optimizer_step(estimator, trajectory)
-				if np.mean(scores_deque) >= 195.0:
-					print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
-					break
-			scores_runs.append(scores)
-		scores_length = np.array([len(item) for item in scores_runs])
-		scores_np = np.full((len(scores_length),scores_length.max()),np.nan)
-		for i,maximum in enumerate(scores_length):
-			scores_np[i,:maximum] = scores_runs[i]
-		scores_np = np.full((2,maximum))
-		scores_np[0,:] = np.nanmean(scores_np,axis=0)
-		scores_np[1,:] = np.nanstd(scores_np,axis=0)
-		np.savetxt('data--cartpole_'+type(estimator).__name__+'__CI-mean.txt',scores_np)
-		np.savetxt('data--cartpole_'+type(estimator).__name__+'__episodes.txt',scores_length)
+			trajectory = [saved_log_probs, [R]]
+			self.optimizer_step(estimator, trajectory)
+			if np.mean(scores_deque) >= 195.0:
+				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
+				break
+		scores_stat = np.array(scores_stat)
+		mean = scores_stat.mean(axis=1)
+		std = scores_stat.std(axis=1)
+		np.savetxt('data--cartpole_'+type(estimator).__name__+'__CI-mean.txt',np.vstack([mean,std]))
+		# fig,ax = plt.subplots(figsize=(10,5))
+		# ax.set_xlabel("trajectory")
+		# ax.set_ylabel("average reward")
+		# plt.plot(scores_stat.mean(axis=1))
+		# plt.fill_between(
+		# 	np.arange(scores_stat.mean(axis=1).shape[0]),
+		# 	scores_stat.mean(axis=1)+scores_stat.std(axis=1),
+		#     scores_stat.mean(axis=1)-scores_stat.std(axis=1),
+		#     alpha=0.2
+		# )
+		# plt.grid()
+		# fig.suptitle('performance comparison')
+		# # plt.savefig(titles[game]+'.svg')
+		# plt.show()
 		return scores
 
 	def optimizer_step(self, estimator, trajectory):

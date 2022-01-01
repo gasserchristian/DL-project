@@ -6,6 +6,8 @@
 
 from reinforce import reinforce
 from cart_pole import cart_pole
+import numpy as np
+import matplotlib.pyplot as plt
 
 class Environment:
 	def plot(self,game):
@@ -14,29 +16,29 @@ class Environment:
 			#, mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
 		}
 		estimators = [
-			type(reinforce).__name__
+			reinforce.__name__
 		]
 		games = {
 			cart_pole: 'cartpole'
 		}
-		data = [np.loadtxt('data--'+games[game]+'_'+estim.__name__+'__CI-mean.txt') for estim in estimators]
+		data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'__CI-mean.txt') for estim in estimators]
 		fig,ax = plt.subplots(figsize=(10,5))
-		ax.set_title(titles[game])
+		ax.set_title(titles[type(game)])
 		ax.set_xlabel("episodes")
 		ax.set_ylabel("reward")
 		for i,item in enumerate(data):
-			plt.plot(item[0,:])
+			plt.plot(item[0])
 			plt.fill_between(
-				np.arange(item[0,:].shape[0]),
-				item[0,:]-item[1,:],
-			    item[0,:]+item[1,:],
+				np.arange(item[0].shape[0]),
+				item[0]-item[1],
+			    item[0]+item[1],
 			    alpha=0.2
 			)
 		fig.legend(
 		    estimators
 		)
 		plt.grid()
-		plt.savefig(titles[game]+'.svg')
+		plt.savefig(titles[type(game)]+'.svg')
 		plt.show()
 
 	def train(self, estimator, game):
