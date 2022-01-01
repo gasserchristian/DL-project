@@ -28,10 +28,10 @@ class svrpg(estimator):
 
 		self.mu = None # return of outer loop 
 
-		self.current_policy = Policy()
-		self.snapshot_policy = Policy()
+		self.current_policy = Policy() # policy network 
+		self.snapshot_policy = Policy() # snapshot neural network 
 
-		self.lr = alpha
+		self.lr = alpha # learning rate 
 		
 
 	def importance_weight(self, trajectory, game): 
@@ -39,15 +39,20 @@ class svrpg(estimator):
 		# current and old policy network
 		return 1
 
-	def step(self, game):
+	def step(self, game): # one step of update 
 		if self.t == self.m:
-			self.outer_loop_update(game)
+			self.outer_loop_update(game) # outer loop of SVRPG algprithm 
 			self.t = 0 # reset counter within epoch 
 		
-		self.inner_loop_update(game)
+		self.inner_loop_update(game) # inner loop of SVRPG algprithm 
 		self.t += 1
 
 	def outer_loop_update(self, game):
+		
+		####################
+		"""
+		here we just update snapshot NN with weights of current NN 
+		"""
 		current_network_weights = []
 		k = 0
 
@@ -58,15 +63,25 @@ class svrpg(estimator):
 			p.data = current_network_weights[k] # clone current NN to snapshot NN
 			k += 1
 
-		for i in range(self.N): # sample a batch of trajectories 
-			trajectory = game.sample() # using current policy NN 
-			gradient_estimator = self.gradient_estimate(trajectory, game)
-			if i == 0:
-				gradient_estimators = gradient_estimator
-				continue
-			gradient_estimators = list(map(add, gradient_estimators, gradient_estimator))
+		####################
 
-		self.mu = [x / self.N for x in gradient_estimators] # compute gradient estimator of the batch 
+
+
+		"""
+		then we sample a batch of trajectories and compute GPOMDP gradient estimation
+		"""
+
+		for i in range(self.N): # sample a batch of trajectories 
+			trajectory = game.sample() # trajectory is produced by current policy NN 
+			gradient_estimator = self.gradient_estimate(trajectory, game) # compute gradient estimate 
+			if i == 0:
+				gradient_estimators = gradient_estimator 
+				continue
+			gradient_estimators = list(map(add, gradient_estimators, gradient_estimator)) # and then we sum them up
+
+		self.mu = [x / self.N for x in gradient_estimators] # and average them out
+
+
 
 	def inner_loop_update(self, game):
 		gradient_estimators = []
@@ -74,14 +89,14 @@ class svrpg(estimator):
 		weights = [] 
 		
 		for i in range(self.B):
-			trajectory = game.sample(snapshot = False) # using current policy netowrk 
-			trajectory_snapshot = game.sample(snapshot = True) # using snapshot policy network
+			trajectory = game.sample(snapshot = False) # produced by current policy netowrk 
+			trajectory_snapshot = game.sample(snapshot = True) # produced by snapshot policy network
 
 			gradient_estimator = self.gradient_estimate(trajectory, game, snapshot = False)
 			snapshot_estimator = self.gradient_estimate(trajectory_snapshot, game, snapshot = True)
-			weight = self.importance_weight(trajectory, game)
+			weight = self.importance_weight(trajectory, game) # TODO 
 
-			to_add = [x*(-1)*weight for x in snapshot_estimator]
+			to_add = [x*(-1)*weight for x in snapshot_estimator] 
 
 			if i == 0:
 				gradient_estimators = list(map(add, gradient_estimator, to_add))
@@ -90,10 +105,10 @@ class svrpg(estimator):
 
 		c = [x / self.B for x in gradient_estimators]
 		v = list(map(add,c,self.mu))
-		self.network_update(v, game)
+		self.network_update(v, game) # then we update current policy network
 
 
-	def network_update(self, v, game, snapshot = False): # update all weights of policy network
+	def network_update(self, v, game): # update all weights of policy network
 		k = 0
 		for p in game.policy.parameters():
 			p.data += v[k] * self.lr
@@ -101,8 +116,8 @@ class svrpg(estimator):
 
 
 	def gradient_estimate(self, trajectory, game, snapshot = False):
-		# computes GPOMDP gradient estimate of the given trajectory 
-		policy_network = game.snapshot_policy if snapshot else game.policy
+		# computes GPOMDP gradient estimate using some trajectory 
+		policy_network = game.snapshot_policy if snapshot else game.policy # don't forget, we have two networks
 		gamma = game.gamma
 
 		log_probs = trajectory['probs']
