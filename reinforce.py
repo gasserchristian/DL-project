@@ -1,8 +1,14 @@
 from estimator import estimator
 import torch
+import torch.optim as optim
 
 class reinforce(estimator):
-	def compute_loss(self, trajectory, gamma):
+	def __init__(self, game):
+		self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
+
+	def step(self, game):
+		trajectory = game.sample()
+		gamma = game.gamma
 		
 		log_probs = trajectory['probs']
 		rewards = trajectory['rewards']
@@ -21,5 +27,8 @@ class reinforce(estimator):
 			policy_loss.append(-log_prob * R)
 		# After that, we concatenate whole policy loss in 0th dimension
 		policy_loss = torch.cat(policy_loss).sum()
-		return policy_loss
+		self.optimizer.zero_grad()
+		policy_loss.backward()
+		self.optimizer.step()
+
 

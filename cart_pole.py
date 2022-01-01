@@ -18,8 +18,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = gym.make('CartPole-v0')
 env.seed(0)
 
-max_t=1000
-gamma=1.0
 print_every=100
 
 class Policy(nn.Module):
@@ -45,54 +43,86 @@ class Policy(nn.Module):
 
 class cart_pole(game):
 	def __init__(self):
-		self.policy = Policy().to(device) # NN that represents the policy we optimize over 
-		self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
+		self.gamma = 1.0 
+		self.number_of_sampled_trajectories = 0 # total number of sampled trajectories 
+		
+		self.snapshot_policy = Policy().to(device) # policy "snapshot" network used by some algorithms 
+		self.policy = Policy().to(device) # policy network 
+		
+		# self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
 
-	def generate_data(self, estimator, number_of_runs=5, number_of_episodes=2000):
+	def reset(self):
+		# TODO: perform reset of policy networks 
+		pass 
+
+
+	def sample(self, snapshot = False, max_t = 1000): 
+		"""
+		sample a trajectory 
+		{state, action, log_prob, reward}
+		snaphsot = True iff we sample from snapshot policy
+		snapshot = False iff we sample from current policy 
+		max_t - maximum length of the trajectory 
+		"""
+		states = []
+		actions = []
+		saved_log_probs = []
+		rewards = []
+		state = env.reset()
+		# Collect trajectory
+		for t in range(max_t):
+			states.append(state) 
+			if snapshot: 
+				action, log_prob = self.snapshot_policy.act(state)
+			else:
+				action, log_prob = self.policy.act(state)
+			actions.append(action)
+			saved_log_probs.append(log_prob)
+			state, reward, done, _ = env.step(action)
+			rewards.append(reward) # or after break? reward of terminal state? 
+			if done:
+				break
+		trajectory = {'states': states, 'actions': actions, 
+						'probs': saved_log_probs, 'rewards': rewards} 
+
+		if self.number_of_sampled_trajectories % 10 == 0:				
+			print(sum(rewards))
+		self.number_of_sampled_trajectories += 1 
+		return trajectory
+
+	def evaluate(self, number_of_runs = 10): # performs the evaluation of the current policy NN for 
+											 # a given number of runs 
+		# TODO: 
+		# it should return 3 values:
+		# 1) self.number_of_sampled_trajecties 
+		# 2) mean performance 
+		# 3) confidence interval 
+		pass 
+
+	def generate_data(self, estimator, number_of_sampled_trajectories = 1000):
 		"""
 		generate csv table consisting of 3d tuples (return, number of episodes, CI)
+		until it reaches the specified number of trajectories 
 		"""
-		# TODO: add generation of the CSV table
+		trajectories = []
+		mean_reward = []
+		CI_reward = [] 
 
-		n_episodes = number_of_episodes
-		scores_deque = deque(maxlen=100)
-		scores = []
-		for e in range(1, n_episodes):
-			saved_log_probs = []
-			rewards = []
-			state = env.reset()
-			# Collect trajectory
-			for t in range(max_t):
-			# Sample the action from current policy
-				action, log_prob = self.policy.act(state)
-				saved_log_probs.append(log_prob)
-				state, reward, done, _ = env.step(action)
-				rewards.append(reward)
-				if done:
-					break
-			# Calculate total expected reward
-			scores_deque.append(sum(rewards))
-			scores.append(sum(rewards))
+		while True:
+			estimator.step(self) # performs one step of update for the selected estimator 
+								   # this can be one or more episodes 
 
-			trajectory = {'probs': saved_log_probs, 'rewards': rewards} 
-			self.optimizer_step(estimator, trajectory)
+			# after policy NN updates, we need to evaluate this updated policy using self.evaluate() 
+			self.evaluate() 
+			# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file  
 
-			if np.mean(scores_deque) >= 195.0:
-				print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(e - 100, np.mean(scores_deque)))
-				break
-		return scores
+			if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
+				print("finish")
+				self.number_of_sampled_trajectories = 0 
+				break 
 
-	def optimizer_step(self, estimator, trajectory):
-		"""
-		computes the policy loss  
-		"""
 
-		policy_loss = estimator.compute_loss(trajectory, gamma) # computes policy loss for one trajectory 
-
-		# backprop 
-		self.optimizer.zero_grad()
-		policy_loss.backward()
-		self.optimizer.step()
+	
 
 
 

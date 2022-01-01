@@ -1,11 +1,17 @@
 from estimator import estimator
 import torch
-import statistics 
+import torch.optim as optim
+import statistics
 
 # average of rewards-to-go serves as baseline 
 class gpomdp(estimator):
-	def compute_loss(self, trajectory, gamma):
-		
+	def __init__(self, game):
+		self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
+
+	def step(self, game):
+		trajectory = game.sample()
+		gamma = game.gamma
+
 		log_probs = trajectory['probs']
 		rewards = trajectory['rewards']
 
@@ -31,4 +37,7 @@ class gpomdp(estimator):
 
 		# After that, we concatenate whole policy loss in 0th dimension
 		policy_loss = torch.cat(policy_loss).sum()
-		return policy_loss
+
+		self.optimizer.zero_grad()
+		policy_loss.backward()
+		self.optimizer.step()

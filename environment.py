@@ -7,6 +7,8 @@
 
 from reinforce import reinforce
 from gpomdp import gpomdp 
+from svrpg import svrpg
+
 from cart_pole import cart_pole 
 
 class Environment:
@@ -17,11 +19,14 @@ class Environment:
 	def train(self, estimator, game): 
 		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting 
 		# of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
+		
+		game.reset() # reset policy networks 
 		result = game.generate_data(estimator)
 
 if __name__ == '__main__':
 	environment = Environment()
 	
+	"""
 	estimators = [
 		#reinforce(),
 		gpomdp()
@@ -43,7 +48,16 @@ if __name__ == '__main__':
 	print("Plotting the performance")
 	for game in games:
 		environment.plot(game)
+	"""
 
+	game = cart_pole()
+
+	#estimator = reinforce(game)
+	#estimator = gpomdp(game)
+	estimator = svrpg(game)
+
+	environment.train(estimator, game)
+	environment.plot(game)
 
 
 
