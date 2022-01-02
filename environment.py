@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 
 class Environment:
 	def plot(self,game):
+		"""
 		titles = {
 			cart_pole: 'Cart pole'
 			#, mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
@@ -44,7 +45,7 @@ class Environment:
 		)
 		plt.grid()
 		plt.savefig(titles[type(game)]+'.svg')
-		plt.show()
+		plt.show()"""
 
 	def train(self, estimator, game):
 		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
