@@ -16,36 +16,38 @@ import matplotlib.pyplot as plt
 
 class Environment:
 	def plot(self,game):
-		"""
 		titles = {
 			cart_pole: 'Cart pole'
 			#, mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
 		}
 		estimators = [
-			reinforce.__name__
+			reinforce.__name__,
+			gpomdp.__name__,
+			svrpg.__name__
 		]
 		games = {
 			cart_pole: 'cartpole'
 		}
-		data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'__CI-mean.txt') for estim in estimators]
+		# data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'.txt') for estim in estimators]
+		data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'.txt') for estim in [svrpg.__name__]]
 		fig,ax = plt.subplots(figsize=(10,5))
 		ax.set_title(titles[type(game)])
-		ax.set_xlabel("episodes")
+		ax.set_xlabel("trajectories")
 		ax.set_ylabel("reward")
 		for i,item in enumerate(data):
-			plt.plot(item[0])
+			plt.plot(item[0],item[1])
 			plt.fill_between(
-				np.arange(item[0].shape[0]),
-				item[0]-item[1],
-			    item[0]+item[1],
+				item[0],
+				item[1]-item[2],
+			    item[1]+item[2],
 			    alpha=0.2
 			)
-		fig.legend(
-		    estimators
-		)
+		# fig.legend(
+		#     estimators
+		# )
 		plt.grid()
 		plt.savefig(titles[type(game)]+'.svg')
-		plt.show()"""
+		plt.show()
 
 	def train(self, estimator, game):
 		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
