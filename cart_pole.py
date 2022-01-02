@@ -13,6 +13,8 @@ import torch.optim as optim
 from torch.distributions import Categorical
 from collections import deque
 
+import time
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 env = gym.make('CartPole-v0')
@@ -41,6 +43,16 @@ class Policy(nn.Module):
 		action = model.sample()
 		return action.item(), model.log_prob(action)
 
+	def log_prob(self, state, action): # probability of taking action "action" in state "state"
+		state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+		probs = self.forward(state).cpu()
+		model = Categorical(probs)
+		action = torch.tensor([action])
+		log_prob = model.log_prob(action)
+		return log_prob
+
+		
+
 class cart_pole(game):
 	def __init__(self):
 		self.gamma = 1.0 
@@ -56,7 +68,7 @@ class cart_pole(game):
 		pass 
 
 
-	def sample(self, snapshot = False, max_t = 1000): 
+	def sample(self, max_t = 1000): 
 		"""
 		sample a trajectory 
 		{state, action, log_prob, reward}
@@ -72,10 +84,7 @@ class cart_pole(game):
 		# Collect trajectory
 		for t in range(max_t):
 			states.append(state) 
-			if snapshot: 
-				action, log_prob = self.snapshot_policy.act(state)
-			else:
-				action, log_prob = self.policy.act(state)
+			action, log_prob = self.policy.act(state)
 			actions.append(action)
 			saved_log_probs.append(log_prob)
 			state, reward, done, _ = env.step(action)
@@ -101,8 +110,8 @@ class cart_pole(game):
 
 	def generate_data(self, estimator, number_of_sampled_trajectories = 1000):
 		"""
-		generate csv table consisting of 3d tuples (return, number of episodes, CI)
-		until it reaches the specified number of trajectories 
+		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
+		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
 		"""
 		trajectories = []
 		mean_reward = []
@@ -122,7 +131,7 @@ class cart_pole(game):
 				break 
 
 
-	
+			
 
 
 

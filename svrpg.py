@@ -17,7 +17,7 @@ TODO:
 class svrpg(estimator):
 
 	# define here snapshot and current NNs 
-	def __init__(self, S = 1000, m = 10, alpha = 0.01, N = 20, B = 10):
+	def __init__(self, S = 1000, m = 10, alpha = 0.01, N = 200, B = 100):
 		self.S = S # number of epochs
 		self.m = m # epoch size
 		self.N = N # batch size
@@ -83,17 +83,17 @@ class svrpg(estimator):
 
 
 
+
 	def inner_loop_update(self, game):
 		gradient_estimators = []
 		snapshot_estimators = []
 		weights = [] 
 		
 		for i in range(self.B):
-			trajectory = game.sample(snapshot = False) # produced by current policy netowrk 
-			trajectory_snapshot = game.sample(snapshot = True) # produced by snapshot policy network
+			trajectory = game.sample() # trajectory produced by current policy network
 
 			gradient_estimator = self.gradient_estimate(trajectory, game, snapshot = False)
-			snapshot_estimator = self.gradient_estimate(trajectory_snapshot, game, snapshot = True)
+			snapshot_estimator = self.gradient_estimate(trajectory, game, snapshot = True)
 			weight = self.importance_weight(trajectory, game) # TODO 
 
 			to_add = [x*(-1)*weight for x in snapshot_estimator] 
@@ -118,10 +118,22 @@ class svrpg(estimator):
 	def gradient_estimate(self, trajectory, game, snapshot = False):
 		# computes GPOMDP gradient estimate using some trajectory 
 		policy_network = game.snapshot_policy if snapshot else game.policy # don't forget, we have two networks
-		gamma = game.gamma
+		gamma = game.gamma # discount factor 
 
-		log_probs = trajectory['probs']
+		log_probs = [] if snapshot else trajectory['probs']
 		rewards = trajectory['rewards']
+		states = trajectory['states']
+		actions = trajectory['actions']
+
+		if snapshot: # then we need to recompute logprobs using snapshot network 
+			while True: 
+				state = states.pop(0)
+				action = actions.pop(0)
+				log_prob = policy_network.log_prob(state,action)
+				log_probs.append(log_prob)
+				if not states:
+					break 
+
 
 		# this nested function computes a list of rewards-to-go 
 		def rewards_to_go(rewards): 
@@ -140,14 +152,17 @@ class svrpg(estimator):
 		k = 0 # counter
 
 		for log_prob in log_probs:
-			policy_loss.append(-log_prob * (gamma ** k) * norm_rewards_to_go[k])
+			policy_loss.append(log_prob * (gamma ** k) * norm_rewards_to_go[k])
 			k += 1
 
 		# After that, we concatenate whole policy loss in 0th dimension
 		policy_loss = torch.cat(policy_loss).sum()
+		
+		policy_network.zero_grad() # otherwise gradients are accumulated! 
 		policy_loss.backward()
 
 		gradients = []
+
 		for p in policy_network.parameters():
 			gradients.append(p.grad)
 
