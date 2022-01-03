@@ -39,13 +39,15 @@ class Environment:
 		ax.set_xlabel("trajectories")
 		ax.set_ylabel("reward")
 		for i,item in enumerate(data):
-			plt.plot(item[0],item[1])
+			plt.plot(item[0],item[1],label=estimators[i])
 			plt.fill_between(
 				item[0],
 				item[1]-item[2],
 			    item[1]+item[2],
 			    alpha=0.2
 			)
+
+		fig.legend(frameon=False,loc='upper center',ncol=len(data))
 		# ax.legend(
 		#     estimators,artists
 		# )
