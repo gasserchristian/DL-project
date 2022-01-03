@@ -28,8 +28,12 @@ class Environment:
 		games = {
 			cart_pole: 'cartpole'
 		}
-		# data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'.txt') for estim in estimators]
-		data = [np.loadtxt('data--'+games[type(game)]+'_'+estim+'.txt') for estim in [svrpg.__name__]]
+		data = []
+		for estimator in estimators:
+			try:
+				data.append(np.loadtxt('data--'+games[type(game)]+'_'+estimator+'.txt'))
+			except:
+				print(f'no generated data for {estimator}')
 		fig,ax = plt.subplots(figsize=(10,5))
 		ax.set_title(titles[type(game)])
 		ax.set_xlabel("trajectories")
@@ -42,8 +46,8 @@ class Environment:
 			    item[1]+item[2],
 			    alpha=0.2
 			)
-		# fig.legend(
-		#     estimators
+		# ax.legend(
+		#     estimators,artists
 		# )
 		plt.grid()
 		plt.savefig(titles[type(game)]+'.svg')
@@ -85,9 +89,8 @@ if __name__ == '__main__':
 
 	game = cart_pole()
 
-	#estimator = reinforce(game)
-	#estimator = gpomdp(game)
+	# estimator = reinforce(game)
+	# estimator = gpomdp(game)
 	estimator = svrpg(game)
-
 	environment.train(estimator, game)
 	environment.plot(game)
