@@ -5,68 +5,73 @@
 # - performance plotting
 # - resolve object issue
 
-from reinforce import reinforce
-from gpomdp import gpomdp
-from svrpg import svrpg
-
+from reinforce import Reinforce
+from gpomdp import Gpomdp
+from svrpg import Svrpg
+from sarahpg import SarahPg
+from stormpg import StormPg
+from pagepg import PagePg
+from pagestormpg import PageStormPg
 from cart_pole import cart_pole
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Environment:
-	def plot(self,game):
-		titles = {
-			cart_pole: 'Cart pole'
-			#, mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
-		}
-		estimators = [
-			reinforce.__name__,
-			gpomdp.__name__,
-			svrpg.__name__
-		]
-		games = {
-			cart_pole: 'cartpole'
-		}
-		data = []
-		for estimator in estimators:
-			try:
-				data.append(np.loadtxt('data--'+games[type(game)]+'_'+estimator+'.txt'))
-			except:
-				print(f'no generated data for {estimator}')
-		fig,ax = plt.subplots(figsize=(10,5))
-		ax.set_title(titles[type(game)])
-		ax.set_xlabel("trajectories")
-		ax.set_ylabel("reward")
-		for i,item in enumerate(data):
-			plt.plot(item[0],item[1],label=estimators[i])
-			plt.fill_between(
-				item[0],
-				item[1]-item[2],
-			    item[1]+item[2],
-			    alpha=0.2
-			)
+    def plot(self, game):
+        titles = {
+            cart_pole: 'Cart pole'
+            # , mountain_car: 'Mountain car', lunar_rider: 'Lunar rider'
+        }
+        estimators = [
+            Reinforce.__name__,
+            Gpomdp.__name__,
+            Svrpg.__name__
+        ]
+        games = {
+            cart_pole: 'cartpole'
+        }
+        data = []
+        for estimator in estimators:
+            try:
+                data.append(np.loadtxt('data--' + games[type(game)] + '_' + estimator + '.txt'))
+            except:
+                print(f'no generated data for {estimator}')
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.set_title(titles[type(game)])
+        ax.set_xlabel("trajectories")
+        ax.set_ylabel("reward")
+        for i, item in enumerate(data):
+            plt.plot(item[0], item[1], label=estimators[i])
+            plt.fill_between(
+                item[0],
+                item[1] - item[2],
+                item[1] + item[2],
+                alpha=0.2
+            )
 
-		fig.legend(frameon=False,loc='upper center',ncol=len(data))
-		# ax.legend(
-		#     estimators,artists
-		# )
-		plt.grid()
-		plt.savefig(titles[type(game)]+'.svg')
-		plt.show()
+        fig.legend(frameon=False, loc='upper center', ncol=len(data))
+        # ax.legend(
+        #     estimators,artists
+        # )
+        plt.grid()
+        plt.savefig(titles[type(game)] + '.svg')
+        plt.show()
 
-	def train(self, estimator, game):
-		# trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
-		# of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
+    def train(self, estimator, game):
+        # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
+        # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
 
-		game.reset() # reset policy networks
-		result = game.generate_data(estimator)
+        game.reset()  # reset policy networks
+        result = game.generate_data(estimator)
+
 
 if __name__ == '__main__':
-	environment = Environment()
+    environment = Environment()
 
-	"""
-	estimators = [
+    """
+	estimators = []
 		#reinforce(),
 		gpomdp()
 		#storm(),
@@ -89,10 +94,10 @@ if __name__ == '__main__':
 		environment.plot(game)
 	"""
 
-	game = cart_pole()
+    game = cart_pole()
 
-	# estimator = reinforce(game)
-	# estimator = gpomdp(game)
-	estimator = svrpg(game)
-	environment.train(estimator, game)
-	environment.plot(game)
+    # estimator = Reinforce(game)
+    # estimator = Gpomdp(game)
+    estimator = PagePg(game)
+    environment.train(estimator, game)
+    environment.plot(game)
