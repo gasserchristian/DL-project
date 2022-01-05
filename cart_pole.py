@@ -104,7 +104,7 @@ class cart_pole(game):
 		number_of_sampled_trajectories = self.number_of_sampled_trajectories
 		results = [np.sum(self.sample(200)['rewards']) for i in range(number_of_runs)]
 		self.number_of_sampled_trajectories = number_of_sampled_trajectories
-		
+
 		# TODO:
 		# it should return 3 values:
 		# 1) self.number_of_sampled_trajectories
@@ -133,4 +133,4 @@ class cart_pole(game):
 				print("finish")
 				self.number_of_sampled_trajectories = 0
 				break
-		np.savetxt('data--cartpole_'+type(estimator).__name__+'.txt',np.array(evaluations).transpose())
+		np.savetxt('data--'+type(self).__name__+'_'+type(estimator).__name__+'.txt',np.array(evaluations).transpose())
