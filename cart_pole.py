@@ -101,31 +101,36 @@ class cart_pole(game):
 
 	def evaluate(self, number_of_runs = 10): # performs the evaluation of the current policy NN for
 											 # a given number of runs
+		number_of_sampled_trajectories = self.number_of_sampled_trajectories
+		results = [np.sum(self.sample(200)['rewards']) for i in range(number_of_runs)]
+		self.number_of_sampled_trajectories = number_of_sampled_trajectories
+
 		# TODO:
 		# it should return 3 values:
-		# 1) self.number_of_sampled_trajecties
+		# 1) self.number_of_sampled_trajectories
 		# 2) mean performance
 		# 3) confidence interval
-		pass
+		return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
 	def generate_data(self, estimator, number_of_sampled_trajectories = 1000):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
 		"""
-		trajectories = []
-		mean_reward = []
-		CI_reward = []
+		# trajectories = []
+		# mean_reward = []
+		# CI_reward = []
+		evaluations = []
 
 		while True:
 			estimator.step(self) # performs one step of update for the selected estimator
 								   # this can be one or more episodes
 
 			# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-			self.evaluate()
+			evaluations.append(self.evaluate())
 			# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
-
 			if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
 				print("finish")
 				self.number_of_sampled_trajectories = 0
 				break
+		np.savetxt('data--'+type(self).__name__+'_'+type(estimator).__name__+'.txt',np.array(evaluations).transpose())
