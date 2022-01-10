@@ -2,6 +2,7 @@ from abc import abstractmethod, ABCMeta
 import statistics
 import torch
 from operator import add
+import copy
 
 
 class Estimator(metaclass=ABCMeta):
@@ -13,28 +14,36 @@ class Estimator(metaclass=ABCMeta):
 		"""
         pass
 
+
 # A common variance-reduced estimator class
 class VrEstimator(Estimator):
     def gradient_estimate(self, trajectory, game, snapshot=False):
-        # computes GPOMDP gradient estimate using some trajectory
+        """
+        computes GPOMDP gradient estimate using given trajectory
+        """
         policy_network = game.snapshot_policy if snapshot else game.policy  # don't forget, we have two networks
         gamma = game.gamma  # discount factor
+
+        trajectory = trajectory.copy()
 
         log_probs = [] if snapshot else trajectory['probs']
         rewards = trajectory['rewards']
         states = trajectory['states']
         actions = trajectory['actions']
 
+        k = 0
+
         if snapshot:  # then we need to recompute logprobs using snapshot network
             while True:
-                state = states.pop(0)
-                action = actions.pop(0)
+                state = states[k]
+                action = actions[k]
                 log_prob = policy_network.log_prob(state, action)
                 log_probs.append(log_prob)
-                if not states:
+                k += 1
+                if k == len(states):
                     break
 
-        # this nested function computes a list of rewards-to-go
+                # this nested function computes a list of rewards-to-go
 
         def rewards_to_go(rewards):
             rewards_to_go = []
@@ -46,6 +55,7 @@ class VrEstimator(Estimator):
 
         rewards_to_go = rewards_to_go(rewards)
         mean_over_returns = statistics.mean(rewards_to_go)
+
         norm_rewards_to_go = [reward_to_go - mean_over_returns for reward_to_go in rewards_to_go]
 
         policy_loss = []
@@ -58,52 +68,200 @@ class VrEstimator(Estimator):
         # After that, we concatenate whole policy loss in 0th dimension
         policy_loss = torch.cat(policy_loss).sum()
 
-        policy_network.zero_grad()  # otherwise gradients are accumulated!
+        policy_network.zero_grad()
         policy_loss.backward()
 
-        gradients = []
+        grad_dict = {k: v.grad for k, v in
+                     policy_network.named_parameters()}  # one alternative way to compute gradient
 
-        for p in policy_network.parameters():
-            gradients.append(p.grad)
+        return grad_dict  # returns dictionary!
 
-        return gradients
+    def snapshot_update(self,game):
+        """
+        		First of all, we take snapshot -  clone current network to the snapshot network
+        		"""
+        policy_network = game.policy  # current network
+        snapshot_network = game.snapshot_policy  # snapshot network
 
-    def network_update(self, v, game):  # update all weights of policy network
-        k = 0
-        for p in game.policy.parameters():
-            p.data += v[k] * self.lr
-            k += 1
+        policy_dict = policy_network.state_dict()  # current network in dictionary format
+        snap_dict = snapshot_network.state_dict()  # snapshot network in dictionary format
+
+        for (policy_name, policy_param), (snap_name, snape_param) in zip(policy_dict.items(), snap_dict.items()):
+            snap_dict[snap_name].copy_(policy_dict[policy_name])  # clone current NN to the snapshot NN
+
+
+    def network_update(self, v, game, first_iteration=False):  # update all weights of current network
+        """
+        v is a dictionary which contains gradient estimates
+        """
+
+        policy_network = game.policy
+        policy_dict = policy_network.state_dict()  # network in dictionary format
+
+        policy_dict_before_update = copy.deepcopy(policy_dict)
+
+        # The following two lines are important!
+        # Here we manually set gradients of all network parameters
+        for (policy_name, policy_param) in policy_network.named_parameters():
+            policy_param.grad = -v[policy_name]
+
+        if first_iteration == False:  # optimizer update for remaining subiterations
+            self.optimizer_sub.step()
+        else:  # optimizer update for first subiteration
+            self.optimizer_first.step()
+
+        policy_dict_after_update = policy_network.state_dict()
+        self.calculate_lr(policy_dict_before_update, policy_dict_after_update, first_iteration)
 
     def importance_weight(self, trajectory, game):
-        # TODO: compute importance weight for trajectory between
-        # current and old policy network
-        return 1
+        """
+        This method computes importance weight for the given trajectory
+        """
 
-    def snapshot_update(self, game):
-        ####################
-        """
-        here we just update snapshot NN with weights of current NN
-        """
-        current_network_weights = []
+        log_probs = trajectory['probs']
+        rewards = trajectory['rewards']
+        states = trajectory['states']
+        actions = trajectory['actions']
+
+        trajectory_prob_current = []
+        trajectory_prob_snapshot = []
+
         k = 0
 
-        for p in game.policy.parameters():
-            current_network_weights.append(p)
-
-        for p in game.snapshot_policy.parameters():
-            p.data = current_network_weights[k]  # clone current NN to snapshot NN
+        while True:
+            state = states[k]
+            action = actions[k]
+            log_prob_current = game.policy.log_prob(state, action)
+            log_prob_snapshot = game.snapshot_policy.log_prob(state, action)
+            trajectory_prob_current.append(log_prob_current)
+            trajectory_prob_snapshot.append(log_prob_snapshot)
             k += 1
+            if k == len(states):
+                break
 
-    def gpomd_estimators(self, N, game):
+        log_prob_snapshot = sum(log_prob_snapshot)
+        log_prob_current = sum(log_prob_current)
+
+        with torch.no_grad():  # we don't want to track gradient history of weights
+            weight = log_prob_snapshot / log_prob_current
+
+        return weight
+
+    def print_snapshot(self, game, show_gradients=False):
+        """
+        We use this method for debugging, it is not present in the script
+        It outputs parameters and gradients of both networks
+        """
+
+        policy_network = game.policy
+        policy_dict = policy_network.state_dict()
+
+        snapshot_network = game.snapshot_policy
+        snap_dict = snapshot_network.state_dict()
+
+        print("THIS IS SNAPSHOT")
+        for (policy_name, policy_param) in snap_dict.items():
+            print(policy_name)
+            print(policy_param)
+
+        print("THIS IS POLICY")
+        for (policy_name, policy_param) in policy_dict.items():
+            print(policy_name)
+            print(policy_param)
+
+        if show_gradients:
+            print("THIS IS SNAPSHOT GRADIENTS")
+            grad_dict = {k: v.grad for k, v in snapshot_network.named_parameters()}  # gradients
+            for (policy_name, policy_param) in grad_dict.items():
+                print(policy_name)
+                print(policy_param)
+
+            print("THIS IS POLICY GRADIENTS")
+            grad_dict = {k: v.grad for k, v in policy_network.named_parameters()}  # gradients
+            for (policy_name, policy_param) in grad_dict.items():
+                print(policy_name)
+                print(policy_param)
+
+        policy_network = game.policy  # current network
+        snapshot_network = game.snapshot_policy  # snapshot network
+
+        policy_dict = policy_network.state_dict()  # current network in dictionary format
+        snap_dict = snapshot_network.state_dict()  # snapshot network in dictionary format
+
+        for (policy_name, policy_param), (snap_name, snape_param) in zip(policy_dict.items(), snap_dict.items()):
+            snap_dict[snap_name].copy_(policy_dict[policy_name])  # clone current NN to the snapshot NN
+
+    def outer_loop_estimators(self, game):
         """
         Sample N trajectories and compute GPOMDP gradient estimators
         """
-        for i in range(N):  # sample a batch of trajectories
+        for i in range(self.N):  # sample self.N trajectories
             trajectory = game.sample()  # trajectory is produced by current policy NN
             gradient_estimator = self.gradient_estimate(trajectory, game)  # compute gradient estimate
             if i == 0:
                 gradient_estimators = gradient_estimator
                 continue
-            gradient_estimators = list(map(add, gradient_estimators, gradient_estimator))  # and then we sum them up
+            gradient_estimators = self.sum_dictionaries(gradient_estimators, gradient_estimator)
 
         return gradient_estimators
+
+    def inner_loop_estimators(self,game):
+        policy_estimates = []
+        snap_estimates = []
+        weights = []
+
+        if hasattr(self,'alpha'):
+            alpha = self.alpha
+        else:
+            alpha = 0
+
+        for i in range(self.B):  # sample self.B trajectories
+            trajectory = game.sample()  # trajectory produced by current policy network
+            policy_estimate = self.gradient_estimate(trajectory, game, snapshot=False)  # estimate by current policy
+            snap_estimate = self.gradient_estimate(trajectory, game, snapshot=True)  # gradient estimate by snapshot
+            weight = self.importance_weight(trajectory, game)  # importance weight
+
+            policy_estimates.append(policy_estimate)
+            snap_estimates.append(snap_estimate)
+            weights.append(weight)
+
+        sum_weights = sum(weights)
+        weights = [weight / sum_weights for weight in weights]  # we normalize weights
+
+        for i in range(len(weights)):
+            policy_estimate = policy_estimates[i]
+            snap_estimate = snap_estimates[i]
+            weight = weights[i]
+            to_add = {k: v * (-1) * (1-alpha) * weight for k, v in snap_estimate.items()}  # Dictionary!
+            summ = self.sum_dictionaries(policy_estimate, to_add)
+            if i == 0:
+                gradient_estimators = summ
+                continue
+            gradient_estimators = self.sum_dictionaries(gradient_estimators, summ)
+
+            return gradient_estimators
+
+    def calculate_lr(self, old_dict, new_dict, first_iteration):
+        """
+        Here we calculate magnitude of adam update; we need this value to know when to finish subiterations
+        """
+
+        dif_dict = {k: new_dict.get(k, 0) - old_dict.get(k, 0) for k in old_dict.keys()}
+        summ = []
+        for (name, param) in dif_dict.items():
+            squared_sum = torch.sum(torch.square(param))
+            summ.append(squared_sum)
+
+        lr = sum(summ)
+        if first_iteration:
+            self.first_iteration_lr = lr
+        else:
+            self.main_lr = lr
+
+    def sum_dictionaries(self, dic1, dic2):
+        """
+        This method adds two dictionaries together and returns the resulting dictionary;
+        it will be useful for us throughout this module
+        """
+        sdic = {k: dic1.get(k, 0) + dic2.get(k, 0) for k in dic1.keys()}
+        return sdic

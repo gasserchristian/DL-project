@@ -1,71 +1,56 @@
-from operator import add
-
-from cart_pole import Policy
 from estimator import VrEstimator
+from torch import optim
 
 
 class StormPg(VrEstimator):
 
     # define here snapshot and current NNs
-    def __init__(self, S=1000, m=10, lr=0.01, alpha=0.5, N=200, B=100):
-        self.S = S  # number of epochs
-        self.m = m  # epoch size
+    def __init__(self, game, m=50, N=100, B=10, alpha=0.5):
+        self.m = m  # max allowed number of subiterations
+
         self.N = N  # batch size
         self.B = B  # mini-batch size
-        self.alpha = alpha  # weighing STORM hyperparameter in the range [0,1]
 
-        self.s = 0  # counter of epochs
         self.t = self.m  # counter within epoch
 
-        self.mu = None  # return of outer loop
+        self.mu = None  # return of outer loop (mean gradient calculated using N samples)
 
-        self.current_policy = Policy()  # policy network
-        self.snapshot_policy = Policy()  # snapshot neural network
+        self.optimizer_first = optim.Adam(game.policy.parameters(), lr=0.02)
+        self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=0.01)
 
-        self.lr = lr  # learning rate
-
-    def importance_weight(self, trajectory, game):
-        # TODO: compute importance weight for trajectory between
-        # current and old policy network
-        return 1
+        self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
+        self.main_lr = 1  # this is magnitude of update by self.optimizer_sub
+        self.alpha = alpha
 
     def step(self, game):  # one step of update
         if self.t == self.m:
-            self.outer_loop_update(game)  # outer loop of STORM-PG algorithm
+            self.outer_loop_update(game)  # outer loop of SARAH-PG algorithm
             self.t = 0  # reset counter within epoch
 
-        self.inner_loop_update(game)  # inner loop of STORM-PG algorithm
+        self.inner_loop_update(game)  # inner loop of SARAH-PG algorithm
         self.t += 1
 
     def outer_loop_update(self, game):
-        self.snapshot_update(game)
-        gradient_estimators = self.gpomd_estimators(self.N,
-                                                    game)  # then we sample a batch of trajectories and compute GPOMDP gradient estimation
 
-        self.mu = [x / self.N for x in gradient_estimators]  # and average them out
+        self.snapshot_update(game)  # update snapshot with weights of current NN
+        gradient_estimators = self.outer_loop_estimators(
+            game)  # then we sample a batch of trajectories and compute GPOMDP gradient estimators
+
+        # self.mu is the main result of this method
+        self.mu = {k: (1 - self.alpha) * v / self.N for k, v in gradient_estimators.items()}  # average and scale
 
     def inner_loop_update(self, game):
-        gradient_estimators = []
+        gradient_estimators = self.inner_loop_estimators(game)
+        c = {k: v / self.B for k, v in gradient_estimators.items()}
+        v = self.sum_dictionaries(c, self.mu)
 
-        for i in range(self.B):
-            trajectory = game.sample()  # trajectory produced by current policy network
+        # Update the stochastic step direction mu recursively and scale accordingly
+        self.mu = {k: (1-self.alpha) * item for k, item in v.items()}
 
-            gradient_estimator = self.gradient_estimate(trajectory, game, snapshot=False)
-            snapshot_estimator = self.gradient_estimate(trajectory, game, snapshot=True)
+        # Update snapshot
+        self.snapshot_update(game)
 
-            weight = self.importance_weight(trajectory, game)  # TODO
-            gradient_estimator = [x / self.B for x in gradient_estimator]
-            to_add = [(1 - self.alpha) * (x / self.B * (-1) * weight + self.mu[i]) for i, x in
-                      enumerate(snapshot_estimator)]
-
-            if i == 0:
-                gradient_estimators = list(map(add, gradient_estimator, to_add))
-                continue
-            gradient_estimators = list(map(add, gradient_estimators, to_add))
-
-        # Update the stochastic step direction mu recursively
-        self.mu = gradient_estimators
-
-        self.snapshot_update(game)  # update snapshot parameters to current_policy_network
-
-        self.network_update(gradient_estimators, game)  # then we update current policy network
+        if self.t == 0:  # we use different adams for first subiteration and for the remaining
+            self.network_update(v, game, first_iteration=True)  # updates network in first subiteration
+        else:
+            self.network_update(v, game, first_iteration=False)  # updates network in remaining iterations
