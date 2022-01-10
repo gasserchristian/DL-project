@@ -1,16 +1,18 @@
-# This files serves as the environment for policy gradient estimators
-# Games and gradient estimators are imlemented as instances of different classes
-
-# TODO list:
-# - resolve object issue
+"""
+This files serves as the environment for policy gradient estimators
+Games and gradient estimators are imlemented as instances of different classes
+"""
 
 from reinforce import Reinforce
 from gpomdp import Gpomdp
 from svrpg import Svrpg
+from svrpg_manual_adam import Svrpg_manual
+from svrpg_automatic_adam import Svrpg_auto 
 from sarahpg import SarahPg
 from stormpg import StormPg
 from pagepg import PagePg
 from pagestormpg import PageStormPg
+
 from cart_pole import cart_pole
 
 import numpy as np
@@ -133,6 +135,7 @@ if __name__ == '__main__':
     	{'slug':'Svrpg','class':Svrpg},
     	{'slug':'StormPg','class':StormPg},
     	{'slug':'PagePg','class':PagePg},
+    	{'slug':'Svrpg_auto','class':Svrpg_auto},
     ])
     environment.registerGameInstances([
     	{'slug':'cart_pole','plotTitle':'Cart pole','instance':cart_pole()}
@@ -145,7 +148,8 @@ if __name__ == '__main__':
     # environment.train(estimator='Svrpg',game='cart_pole')
     # environment.train(estimator='StormPg',game='cart_pole')
     # environment.train(estimator='PagePg',game='cart_pole')
+    environment.train(estimator='Svrpg_auto',game='cart_pole')
 
     # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
-    environment.plot('cart_pole',estimators='all')
+    #environment.plot('cart_pole',estimators='all')
     # environment.plot('cart_pole',estimators='SarahPg')

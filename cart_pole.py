@@ -112,7 +112,7 @@ class cart_pole(game):
 		# 3) confidence interval
 		return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
-	def generate_data(self, estimator, number_of_sampled_trajectories = 1000):
+	def generate_data(self, estimator, number_of_sampled_trajectories = 10000):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")

@@ -1,5 +1,5 @@
 from cart_pole import Policy 
-from estimator import estimator
+from estimator import Estimator
 
 import torch
 from torch import nn
@@ -9,20 +9,22 @@ import numpy as np
 import statistics 
 
 import time
+import copy
 
 """
-Here we implement SVRPG with torch adam optimizer 
-Now it doesn't work, issues to resolve:
-1) self.optimizer.step() does not update network weights (this is super strange!)
-
-TODO (after all issues are resolved):
-1) make the number of subiterations adaptive as it is done in svrpg_manual_adam.py 
+Check the following (need thorough evaluation to verify the benefit)
+1) return from time to time random policy 
+2) enable vs disable weights 
+2) enable vs disable normalization of weights
+3) different initializations of ADAM 
+4) normalized GPOMDP estimates vs unnormalized
+5) run svrpg_manual vs svrpg_automatic  
 """
 
-class svrpg_auto(estimator):
+class Svrpg_auto(Estimator):
 
 	# define here snapshot and current NNs 
-	def __init__(self, m = 50, N = 100, B = 10):
+	def __init__(self, game, m = 50, N = 100, B = 10):
 		self.m = m # max allowed number of subiterations  
 		
 		self.N = N # batch size
@@ -30,13 +32,13 @@ class svrpg_auto(estimator):
 		
 		self.t = self.m # counter within epoch 
 
-		self.mu = None # return of outer loop 
+		self.mu = None # return of outer loop (mean gradient calculated using N samples)
 
-		self.current_policy = Policy() # policy neural network 
-		self.snapshot_policy = Policy() # snapshot neural network 
+		self.optimizer_first = optim.Adam(game.policy.parameters(), lr=0.05)
+		self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=0.025)
 
-		self.optimizer_first = optim.Adam(self.current_policy.parameters(), lr=0.05)
-		self.optimizer_sub = optim.Adam(self.current_policy.parameters(), lr=0.025)
+		self.first_iteration_lr = 1 # this is magnitude of update by self.optimizer_first 
+		self.main_lr = 1 # this is magnitude of update by self.optimizer_sub
 
 
 	def sum_dictionaries(self, dic1, dic2): 
@@ -85,16 +87,24 @@ class svrpg_auto(estimator):
 
 	def step(self, game):
 		"""
-		This method performs single update of parameters 
+		This method performs a single update of parameters 
 		It is the main method of SVRPG class
 		"""
 
-		if self.t == self.m: # whenever the subiteration counter achieves threshold valuue  
+		if self.t == self.m: # whenever the subiteration counter achieves threshold value 
 			self.outer_loop_update(game) # outer loop update of SVRPG algprithm 
 			self.t = 0 # and reset the counter to 0
 		
 		self.inner_loop_update(game) # inner loop update of SVRPG algprithm 
 		self.t += 1
+
+
+		if (self.first_iteration_lr / self.N) > (self.main_lr / self.B): 
+			"""
+			Whenever this is true, we finish subiterations and take snapshot 
+			We need to verify that this indeed helps 
+			"""
+			self.t = self.m
 
 
 
@@ -128,7 +138,7 @@ class svrpg_auto(estimator):
 
 
 
-	def print_snapshot(self, game):
+	def print_snapshot(self, game, show_gradients=False):
 		"""
 		We use this method for debugging, it is not present in the script 
 		It outputs parameters and gradients of both networks
@@ -150,18 +160,19 @@ class svrpg_auto(estimator):
 		for (policy_name, policy_param) in policy_dict.items():
 			print(policy_name)
 			print(policy_param) 
-		
-		print("THIS IS SNAPSHOT GRADIENTS")
-		grad_dict = {k:v.grad for k,v in snapshot_network.named_parameters()} # gradients 
-		for (policy_name, policy_param) in grad_dict.items():
-			print(policy_name)
-			print(policy_param) 
 
-		print("THIS IS POLICY GRADIENTS")
-		grad_dict = {k:v.grad for k,v in policy_network.named_parameters()} # gradients 
-		for (policy_name, policy_param) in grad_dict.items():
-			print(policy_name)
-			print(policy_param) 
+		if show_gradients:
+			print("THIS IS SNAPSHOT GRADIENTS")
+			grad_dict = {k:v.grad for k,v in snapshot_network.named_parameters()} # gradients 
+			for (policy_name, policy_param) in grad_dict.items():
+				print(policy_name)
+				print(policy_param) 
+
+			print("THIS IS POLICY GRADIENTS")
+			grad_dict = {k:v.grad for k,v in policy_network.named_parameters()} # gradients 
+			for (policy_name, policy_param) in grad_dict.items():
+				print(policy_name)
+				print(policy_param) 
 
 
 
@@ -212,6 +223,8 @@ class svrpg_auto(estimator):
 		
 		policy_network = game.policy
 		policy_dict = policy_network.state_dict() # network in dictionary format 
+
+		policy_dict_before_update = copy.deepcopy(policy_dict)
 		
 		# The following two lines are important! 
 		# Here we manually set gradients of all network parameters 
@@ -223,7 +236,26 @@ class svrpg_auto(estimator):
 		else: # optimizer update for first subiteration 
 			self.optimizer_first.step()
 
-		# For some reason these self.optimizer.steps do not update network weights...
+		policy_dict_after_update = policy_network.state_dict()
+		self.calculate_lr(policy_dict_before_update, policy_dict_after_update, first_iteration)
+
+	def calculate_lr(self, old_dict, new_dict, first_iteration):
+		"""
+		Here we calculate magnite of adam update; we need this value to know when to finish subiterations
+		"""
+
+		dif_dict = {k: new_dict.get(k, 0) - old_dict.get(k, 0) for k in old_dict.keys()}
+		summ = []
+		for (name, param) in dif_dict.items():
+			squared_sum = torch.sum(torch.square(param))
+			summ.append(squared_sum)
+
+		lr = sum(summ)
+		if first_iteration:
+			self.first_iteration_lr = lr
+		else:
+			self.main_lr = lr 
+
 
 
 	def gradient_estimate(self, trajectory, game, snapshot = False): 

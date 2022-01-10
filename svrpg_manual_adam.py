@@ -1,5 +1,5 @@
 from cart_pole import Policy 
-from estimator import estimator
+from estimator import Estimator
 
 import torch
 from torch import nn
@@ -16,7 +16,7 @@ from adam import adam # our own adam optimizer
 Here we implement SVRPG with our own adam optimizer 
 """
 
-class svrpg_manual(estimator):
+class Svrpg_manual(Estimator):
 
 	# define here snapshot and current NNs 
 	def __init__(self, m = 50, N = 100, B = 10):
@@ -29,11 +29,8 @@ class svrpg_manual(estimator):
 
 		self.mu = None # return of outer loop 
 
-		self.current_policy = Policy() # policy neural network 
-		self.snapshot_policy = Policy() # snapshot neural network 
-
-		self.snapshot_adam = adam(alpha = 0.002) # adam for first subiteration update 
-		self.current_adam = adam(alpha = 0.001) # adam for remaining subiteration updates 
+		self.snapshot_adam = adam(alpha = 0.05) # adam for first subiteration update 
+		self.current_adam = adam(alpha = 0.025) # adam for remaining subiteration updates 
 
 		# at certain ration of this two parameters, we finish subiterations and take snapshot 
 		self.adam_lr_snapshot = 1 
