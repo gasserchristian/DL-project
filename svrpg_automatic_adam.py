@@ -26,9 +26,9 @@ class SvrpgAuto(VrEstimator):
 
         self.mu = None  # return of outer loop (mean gradient calculated using N samples)
 
-        self.optimizer_first = optim.Adam(game.policy.parameters(), lr=0.05)
-        self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=0.025)
-
+        self.optimizer_first = optim.Adam(game.policy.parameters(), lr=0.02)
+        self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=0.01)
+        self.policy_parameter_list = []
         self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
         self.main_lr = 1  # this is magnitude of update by self.optimizer_sub
 
@@ -51,6 +51,9 @@ class SvrpgAuto(VrEstimator):
 			We need to verify that this indeed helps 
 			"""
             self.t = self.m
+
+        # sample randomly from learned policies
+        self.sample_policy_update(game)
 
     def outer_loop_update(self, game):
 

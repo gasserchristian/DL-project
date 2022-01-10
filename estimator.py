@@ -1,17 +1,24 @@
-from abc import abstractmethod, ABCMeta
+import copy
 import statistics
 import torch
-from operator import add
-import copy
-
+from abc import abstractmethod, ABCMeta
+import numpy as np
 
 class Estimator(metaclass=ABCMeta):
+
+    def sum_dictionaries(self, dic1, dic2):
+        """
+        This method adds two dictionaries together and returns the resulting dictionary;
+        it will be useful for us throughout this module
+        """
+        sdic = {k: dic1.get(k, 0) + dic2.get(k, 0) for k in dic1.keys()}
+        return sdic
 
     @abstractmethod
     def step(self):
         """
-		computes policy loss
-		"""
+        computes policy loss
+        """
         pass
 
 
@@ -76,10 +83,10 @@ class VrEstimator(Estimator):
 
         return grad_dict  # returns dictionary!
 
-    def snapshot_update(self,game):
+    def snapshot_update(self, game):
         """
-        		First of all, we take snapshot -  clone current network to the snapshot network
-        		"""
+                First of all, we take snapshot -  clone current network to the snapshot network
+                """
         policy_network = game.policy  # current network
         snapshot_network = game.snapshot_policy  # snapshot network
 
@@ -87,7 +94,30 @@ class VrEstimator(Estimator):
         snap_dict = snapshot_network.state_dict()  # snapshot network in dictionary format
 
         for (policy_name, policy_param), (snap_name, snape_param) in zip(policy_dict.items(), snap_dict.items()):
-            snap_dict[snap_name].copy_(policy_dict[policy_name])  # clone current NN to the snapshot NN
+            snap_dict[snap_name] = policy_dict[policy_name]  # clone current NN to the snapshot NN
+
+    def sample_policy_update(self, game):
+        """
+                First, we append the current network parameter to our policy parameter list
+                """
+        policy_network = game.policy  # current network
+        sample_network = game.sample_policy  # sample policy network
+
+        policy_dict = policy_network.state_dict()  # current network in dictionary format
+        sample_dict = sample_network.state_dict() # sample network in dictionary format
+
+        temp_dict = copy.deepcopy(policy_dict)  # temporary network in dictionary format
+
+        # append the current policy dictionary into the list
+        self.policy_parameter_list.append(temp_dict)
+
+        #Choose random uniform network policy
+        index = np.random.choice(len(self.policy_parameter_list))
+
+        for (policy_name, policy_param), (sample_name, sample_param) in zip(sample_dict.items(), self.policy_parameter_list[index].items()):
+            # sample_dict[sample_name] = copy.deepcopy((torch.tensor(self.policy_parameter_list[index][policy_name].detach().numpy())))  # clone current NN to the snapshot NN
+            sample_dict[sample_name].copy_(self.policy_parameter_list[index][
+                                                                       policy_name].detach()) # clone current NN to the snapshot NN
 
 
     def network_update(self, v, game, first_iteration=False):  # update all weights of current network
@@ -105,7 +135,7 @@ class VrEstimator(Estimator):
         for (policy_name, policy_param) in policy_network.named_parameters():
             policy_param.grad = -v[policy_name]
 
-        if first_iteration == False:  # optimizer update for remaining subiterations
+        if not first_iteration:  # optimizer update for remaining subiterations
             self.optimizer_sub.step()
         else:  # optimizer update for first subiteration
             self.optimizer_first.step()
@@ -205,12 +235,13 @@ class VrEstimator(Estimator):
 
         return gradient_estimators
 
-    def inner_loop_estimators(self,game):
+    def inner_loop_estimators(self, game):
         policy_estimates = []
         snap_estimates = []
         weights = []
 
-        if hasattr(self,'alpha'):
+        # sets alpha value if relevant (e.g. STORM, STORM-PG)
+        if hasattr(self, 'alpha'):
             alpha = self.alpha
         else:
             alpha = 0
@@ -232,7 +263,7 @@ class VrEstimator(Estimator):
             policy_estimate = policy_estimates[i]
             snap_estimate = snap_estimates[i]
             weight = weights[i]
-            to_add = {k: v * (-1) * (1-alpha) * weight for k, v in snap_estimate.items()}  # Dictionary!
+            to_add = {k: v * (-1) * (1 - alpha) * weight for k, v in snap_estimate.items()}  # Dictionary!
             summ = self.sum_dictionaries(policy_estimate, to_add)
             if i == 0:
                 gradient_estimators = summ
@@ -257,11 +288,3 @@ class VrEstimator(Estimator):
             self.first_iteration_lr = lr
         else:
             self.main_lr = lr
-
-    def sum_dictionaries(self, dic1, dic2):
-        """
-        This method adds two dictionaries together and returns the resulting dictionary;
-        it will be useful for us throughout this module
-        """
-        sdic = {k: dic1.get(k, 0) + dic2.get(k, 0) for k in dic1.keys()}
-        return sdic

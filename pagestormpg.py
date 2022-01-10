@@ -27,6 +27,7 @@ class PageStormPg(VrEstimator):
         self.p = 1  # sampled probability value: if 1, do full gradient calculation; if 0, do SARAH (initialize to 1)
         self.mu = None  # return of outer loop
         self.alpha = alpha
+        self.policy_parameter_list = []
 
     def step(self, game):  # one step of update
         if self.p:
@@ -35,6 +36,9 @@ class PageStormPg(VrEstimator):
             self.storm_inner_update(game)  # inner loop of PAGE-PG algorithm
         self.t += 1  # update counter for step updates
         self.p = np.random.choice(2, p=[1 - self.prob, self.prob])
+
+        # sample randomly from learned policies
+        self.sample_policy_update(game)
 
     def full_grad_update(self, game):
 
