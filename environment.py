@@ -64,7 +64,7 @@ class Environment:
     def plot(self, game, estimators='all'):
         game = self.games[game]
         data = []
-
+		maxReward = 200
         # estimator can be either 'all', a string (single estim)
         # or a list
         if estimators == 'all':
@@ -107,8 +107,8 @@ class Environment:
             plt.plot(item[0], item[1], label=label)
             plt.fill_between(
                 item[0],
-                item[1] - item[2],
-                item[1] + item[2],
+                np.maximum(item[1] - item[2],0),
+                np.minimum(item[1] + item[2],maxReward),
                 alpha=0.2
             )
         fig.legend(frameon=False, loc='upper center', ncol=len(data))
