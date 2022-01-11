@@ -64,7 +64,7 @@ class Environment:
     def plot(self, game, estimators='all'):
         game = self.games[game]
         data = []
-		maxReward = 200
+        maxReward = 200
         # estimator can be either 'all', a string (single estim)
         # or a list
         if estimators == 'all':
