@@ -6,9 +6,12 @@ import statistics
 
 # average of rewards-to-go serves as baseline
 class Gpomdp(Estimator):
-    def __init__(self, game, B=100):
+    def __init__(self, game, B=10):
         self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
         self.B = B  # batch size
+
+        #set sample policy to current policy
+        game.sample_policy = game.policy
 
     def step(self, game):
         for i in range(self.B):
@@ -24,11 +27,13 @@ class Gpomdp(Estimator):
 
         policy_network = game.policy
 
+
         # Here we manually set gradients of all network parameters
         for (policy_name, policy_param) in policy_network.named_parameters():
             policy_param.grad = -total_gradient[policy_name]
 
         self.optimizer.step()  # optimizer step
+
 
     def gpomdp_gradient_estimate(self, trajectory, game):
         """

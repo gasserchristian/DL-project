@@ -150,7 +150,7 @@ if __name__ == '__main__':
     # environment.train(estimator='Svrpg',game='cart_pole')
     # environment.train(estimator='StormPg',game='cart_pole')
     # environment.train(estimator='PagePg',game='cart_pole')
-    environment.train(estimator='PageStormPg', game='cart_pole')
+    environment.train(estimator='Gpomdp', game='cart_pole')
 
     # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
 # environment.plot('cart_pole',estimators='all')

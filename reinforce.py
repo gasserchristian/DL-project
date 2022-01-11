@@ -4,9 +4,13 @@ import torch.optim as optim
 
 
 class Reinforce(Estimator):
-    def __init__(self, game, B=100):
+    def __init__(self, game, B=10):
         self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
         self.B = B  # batch size
+
+        # set sample policy to current policy
+        game.sample_policy = game.policy
+
 
     def step(self, game):
         for i in range(self.B):
@@ -28,6 +32,8 @@ class Reinforce(Estimator):
             policy_param.grad = -total_gradient[policy_name]
 
         self.optimizer.step()  # optimizer step
+
+
 
     def reinforce_gradient_estimate(self, trajectory, game):
         """
