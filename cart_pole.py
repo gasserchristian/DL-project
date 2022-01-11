@@ -62,9 +62,14 @@ class cart_pole(game):
 		self.sample_policy = Policy().to(device) # sample policy used during evaluation
 
 	def reset(self):
+		global env
 		# TODO: perform reset of policy networks
-		pass
-
+		torch.manual_seed(0)
+		env.seed(0)
+		env = gym.make('CartPole-v0')
+		self.snapshot_policy = Policy().to(device)
+		self.policy = Policy().to(device)
+		self.sample_policy = Policy().to(device)
 
 	def sample(self, max_t = 1000, eval = 0):
 		"""
@@ -98,15 +103,16 @@ class cart_pole(game):
 		trajectory = {'states': states, 'actions': actions,
 						'probs': saved_log_probs, 'rewards': rewards}
 
-		if self.number_of_sampled_trajectories % 10 == 0:
+		if self.number_of_sampled_trajectories % print_every == 0:
 			print(sum(rewards))
 		self.number_of_sampled_trajectories += 1
 		return trajectory
 
-	def evaluate(self, number_of_runs = 10): # performs the evaluation of the current policy NN for
-											 # a given number of runs
+	def evaluate(self): # performs the evaluation of the current policy NN
+		# def evaluate(self, number_of_runs = 30):
 		number_of_sampled_trajectories = self.number_of_sampled_trajectories
-		results = [np.sum(self.sample(200, eval = 1)['rewards']) for i in range(number_of_runs)]
+		results = self.sample(200,eval=1)['rewards']
+		# results = [np.sum(self.sample(200, eval = 1)['rewards']) for i in range(number_of_runs)]
 		self.number_of_sampled_trajectories = number_of_sampled_trajectories
 
 		# TODO:
@@ -114,9 +120,10 @@ class cart_pole(game):
 		# 1) self.number_of_sampled_trajectories
 		# 2) mean performance
 		# 3) confidence interval
-		return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
+		return np.sum(self.sample(200,eval=1)['rewards'])
+		# return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
-	def generate_data(self, estimator, number_of_sampled_trajectories = 10000):
+	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
@@ -124,17 +131,22 @@ class cart_pole(game):
 		# trajectories = []
 		# mean_reward = []
 		# CI_reward = []
-		evaluations = []
-
-		while True:
-			estimator.step(self) # performs one step of update for the selected estimator
-								   # this can be one or more episodes
-
-			# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-			evaluations.append(self.evaluate())
-			# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
-			if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
-				print("finish")
-				self.number_of_sampled_trajectories = 0
-				break
-		np.savetxt('data--'+type(self).__name__+'_'+type(estimator).__name__+'.txt',np.array(evaluations).transpose())
+		results = []
+		for _ in range(number_of_runs):
+			self.reset()
+			estimator_instance = estimator(self)
+			evaluations = []
+			while True:
+				estimator_instance.step(self) # performs one step of update for the selected estimator
+									   # this can be one or more episodes
+				# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
+				evaluations.append(self.evaluate())
+				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
+				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
+					# print("finish",`${}`)
+					print(f'finish run {_} of {number_of_runs}')
+					self.number_of_sampled_trajectories = 0
+					results.append(evaluations)
+					break
+		np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
+		# np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())
