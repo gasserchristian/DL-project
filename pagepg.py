@@ -22,6 +22,7 @@ class PagePg(VrEstimator):
 
         self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
         self.main_lr = 1  # this is magnitude of update by self.optimizer_sub
+        self.policy_parameter_list = []
 
         if prob is None:
             self.prob = self.B / (self.N + self.B)  # switching probability
@@ -35,6 +36,9 @@ class PagePg(VrEstimator):
             self.sarah_inner_update(game)  # inner loop of PAGE-PG algorithm
         self.t += 1  # update counter for step updates
         self.p = np.random.choice(2, p=[1 - self.prob, self.prob])
+
+        # sample randomly from learned policies
+        self.sample_policy_update(game)
 
     def full_grad_update(self, game):
 

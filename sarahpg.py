@@ -20,6 +20,7 @@ class SarahPg(VrEstimator):
 
         self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
         self.main_lr = 1  # this is magnitude of update by self.optimizer_sub
+        self.policy_parameter_list = []
 
     def step(self, game):  # one step of update
         if self.t == self.m:
@@ -28,6 +29,9 @@ class SarahPg(VrEstimator):
 
         self.inner_loop_update(game)  # inner loop of SARAH-PG algorithm
         self.t += 1
+
+        # sample randomly from learned policies
+        self.sample_policy_update(game)
 
     def outer_loop_update(self, game):
 

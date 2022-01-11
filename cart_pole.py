@@ -52,23 +52,21 @@ class Policy(nn.Module):
 		return log_prob
 
 
-
 class cart_pole(game):
 	def __init__(self):
 		self.gamma = 1.0
 		self.number_of_sampled_trajectories = 0 # total number of sampled trajectories
 
 		self.snapshot_policy = Policy().to(device) # policy "snapshot" network used by some algorithms
-		self.policy = Policy().to(device) # policy network
-
-		# self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
+		self.policy = Policy().to(device) # policy network parameters
+		self.sample_policy = Policy().to(device) # sample policy used during evaluation
 
 	def reset(self):
 		# TODO: perform reset of policy networks
 		pass
 
 
-	def sample(self, max_t = 1000):
+	def sample(self, max_t = 1000, eval = 0):
 		"""
 		sample a trajectory
 		{state, action, log_prob, reward}
@@ -76,6 +74,12 @@ class cart_pole(game):
 		snapshot = False iff we sample from current policy
 		max_t - maximum length of the trajectory
 		"""
+
+		# If in evaluation mode, random sample
+		if eval:
+			policy = self.sample_policy
+		else:
+			policy = self.policy
 		states = []
 		actions = []
 		saved_log_probs = []
@@ -84,7 +88,7 @@ class cart_pole(game):
 		# Collect trajectory
 		for t in range(max_t):
 			states.append(state)
-			action, log_prob = self.policy.act(state)
+			action, log_prob = policy.act(state)
 			actions.append(action)
 			saved_log_probs.append(log_prob)
 			state, reward, done, _ = env.step(action)
@@ -102,7 +106,7 @@ class cart_pole(game):
 	def evaluate(self, number_of_runs = 10): # performs the evaluation of the current policy NN for
 											 # a given number of runs
 		number_of_sampled_trajectories = self.number_of_sampled_trajectories
-		results = [np.sum(self.sample(200)['rewards']) for i in range(number_of_runs)]
+		results = [np.sum(self.sample(200, eval = 1)['rewards']) for i in range(number_of_runs)]
 		self.number_of_sampled_trajectories = number_of_sampled_trajectories
 
 		# TODO:
