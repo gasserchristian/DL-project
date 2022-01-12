@@ -4,9 +4,13 @@ import torch.optim as optim
 
 
 class Reinforce(Estimator):
-    def __init__(self, game, B=100):
+    def __init__(self, game, B=10):
         self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
         self.B = B  # batch size
+
+        # set sample policy to current policy
+        game.sample_policy = game.policy
+
 
     def step(self, game):
         for i in range(self.B):
@@ -28,6 +32,8 @@ class Reinforce(Estimator):
             policy_param.grad = -total_gradient[policy_name]
 
         self.optimizer.step()  # optimizer step
+
+
 
     def reinforce_gradient_estimate(self, trajectory, game):
         """
@@ -54,13 +60,13 @@ class Reinforce(Estimator):
         for log_prob in log_probs:
             policy_loss.append(log_prob * total_rewards)
 
-            # After that, we concatenate whole policy loss in 0th dimension
-            policy_loss = torch.cat(policy_loss).sum()
+        # After that, we concatenate whole policy loss in 0th dimension
+        policy_loss = torch.cat(policy_loss).sum()
 
-            policy_network.zero_grad()
-            policy_loss.backward()
+        policy_network.zero_grad()
+        policy_loss.backward()
 
-            grad_dict = {k: v.grad for k, v in
-                         policy_network.named_parameters()}  # one alternative way to compute gradient
+        grad_dict = {k: v.grad for k, v in
+                     policy_network.named_parameters()}  # one alternative way to compute gradient
 
-            return grad_dict  # returns dictionary!
+        return grad_dict  # returns dictionary!

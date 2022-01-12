@@ -64,12 +64,13 @@ class VrEstimator(Estimator):
         mean_over_returns = statistics.mean(rewards_to_go)
 
         norm_rewards_to_go = [reward_to_go - mean_over_returns for reward_to_go in rewards_to_go]
+        log_probs = np.cumsum(log_probs)  # sum previous log probabilities up to the current step
 
         policy_loss = []
         k = 0  # counter
 
         for log_prob in log_probs:
-            policy_loss.append(log_prob * (gamma ** k) * norm_rewards_to_go[k])
+            policy_loss.append(-log_prob * norm_rewards_to_go[k])
             k += 1
 
         # After that, we concatenate whole policy loss in 0th dimension
