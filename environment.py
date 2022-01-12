@@ -139,7 +139,7 @@ class Environment:
                     'data-runs--'
                     + type(game['instance']).__name__
                     + '_' + estimator.__name__
-                    + '.npy'
+                    + '.npy',allow_pickle=True
                 )
                 data.append({
                     'content': file[:,:,1],
@@ -214,8 +214,8 @@ if __name__ == '__main__':
     # environment.train(estimator='Svrpg',game='cart_pole')
     # environment.train(estimator='StormPg',game='cart_pole')
     # environment.train(estimator='PagePg',game='cart_pole')
-    environment.train(estimator='Gpomdp', game='cart_pole')
+    # environment.train(estimator='Gpomdp', game='cart_pole')
 
     # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
-    environment.plot('cart_pole',estimators='all',interval=2)
+    environment.plot('cart_pole',estimators='PagePg',interval=1)
 # environment.plot('cart_pole',estimators='SarahPg')
