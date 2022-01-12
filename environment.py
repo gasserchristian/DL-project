@@ -198,7 +198,7 @@ if __name__ == '__main__':
         {'slug': 'Gpomdp', 'class': Gpomdp},
         {'slug': 'SarahPg', 'class': SarahPg},
         {'slug': 'PageStormPg', 'class': PageStormPg},
-        {'slug': 'Svrpg', 'class': Svrpg},
+        {'slug': 'Svrpg', 'class': SvrpgAuto},
         {'slug': 'StormPg', 'class': StormPg},
         {'slug': 'PagePg', 'class': PagePg},
         {'slug': 'Svrpg_auto', 'class': SvrpgAuto},
