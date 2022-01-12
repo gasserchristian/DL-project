@@ -120,7 +120,7 @@ class cart_pole(game):
 		# 1) self.number_of_sampled_trajectories
 		# 2) mean performance
 		# 3) confidence interval
-		return np.sum(self.sample(200,eval=1)['rewards'])
+		return np.sum(results)
 		# return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
 	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30):
