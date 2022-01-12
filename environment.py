@@ -115,7 +115,7 @@ class Environment:
         plt.grid()
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
-    def plot(self, game, estimators='all'):
+    def plot(self, game, estimators='all',interval=1):
         game = self.games[game]
         data = []
         maxReward = 200
@@ -153,8 +153,8 @@ class Environment:
         # top 10 rewards
         for i,value in enumerate(data):
             indexes = (-np.sum(value['content'],axis=1)).argsort()
-            data[i]['content']=value['content'][indexes[:10],:]
-            data[i]['indexes']=value['indexes'][indexes[:10],:]
+            data[i]['content']=value['content'][indexes[:10],::interval]
+            data[i]['indexes']=value['indexes'][indexes[:10],::interval]
         # compute statistics
         for i,value in enumerate(data):
             mean = value['content'].mean(axis=0)
@@ -187,7 +187,7 @@ class Environment:
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
         print("Starting training")
-        result = game.generate_data(self.estimators[estimator])
+        result = game.generate_data(self.estimators[estimator],1000,20)
 
 
 if __name__ == '__main__':
@@ -217,5 +217,5 @@ if __name__ == '__main__':
     environment.train(estimator='Gpomdp', game='cart_pole')
 
     # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
-# environment.plot('cart_pole',estimators='all')
+    environment.plot('cart_pole',estimators='all',interval=2)
 # environment.plot('cart_pole',estimators='SarahPg')
