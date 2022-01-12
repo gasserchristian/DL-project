@@ -14,6 +14,7 @@ from torch.distributions import Categorical
 from collections import deque
 from policies import Basic_Policy 
 
+import os
 import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -94,7 +95,7 @@ class cart_pole(game):
 		return np.sum(self.sample(200,eval=1)['rewards'])
 		# return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
-	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30):
+	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
@@ -120,7 +121,11 @@ class cart_pole(game):
 					results.append(evaluations)
 					break
 		# print(np.array(results).shape)
+
+		# Create file name
+		name = f"data-runs--{type(self).__name__}_{type(estimator_instance).__name__}.npy"
+		file_path = os.path.join(root_path, name)
 		# store a numpy binary
-		np.save('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy',np.array(results))
+		np.save(file_path,np.array(results))
 		# np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
 		# np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())
