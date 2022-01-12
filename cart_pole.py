@@ -140,13 +140,16 @@ class cart_pole(game):
 				estimator_instance.step(self) # performs one step of update for the selected estimator
 									   # this can be one or more episodes
 				# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-				evaluations.append(self.evaluate())
+				evaluations.append((self.number_of_sampled_trajectories,self.evaluate()))
 				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
 				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
 					# print("finish",`${}`)
-					print(f'finish run {_} of {number_of_runs}')
+					print(f'finish run {_+1} of {number_of_runs}')
 					self.number_of_sampled_trajectories = 0
 					results.append(evaluations)
 					break
-		np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
+		# print(np.array(results).shape)
+		# store a numpy binary
+		np.save('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy',np.array(results))
+		# np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
 		# np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())

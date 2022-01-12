@@ -61,7 +61,7 @@ class Environment:
                 'instance': game['instance'],
             }
 
-    def plot(self, game, estimators='all'):
+    def plot_old(self, game, estimators='all'):
         game = self.games[game]
         data = []
         maxReward = 200
@@ -115,15 +115,79 @@ class Environment:
         plt.grid()
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
+    def plot(self, game, estimators='all'):
+        game = self.games[game]
+        data = []
+        maxReward = 200
+        # estimator can be either 'all', a string (single estim)
+        # or a list
+        if estimators == 'all':
+            estimators = self.estimators
+        elif type(estimators).__name__ == 'str':
+            estimators = {
+                estimators: self.estimators[estimators]
+            }
+        else:
+            estimators = {
+                slug: self.estimators[slug]
+                for slug in estimators
+            }
+        # load all demanded estimators
+        for key, estimator in estimators.items():
+            try:
+                file = np.load(
+                    'data-runs--'
+                    + type(game['instance']).__name__
+                    + '_' + estimator.__name__
+                    + '.npy'
+                )
+                data.append({
+                    'content': file[:,:,1],
+                    'slug': key,
+					'indexes':file[:,:,0]
+                })
+            except FileNotFoundError:
+                print(estimator.__name__)
+                print(f'no generated data for {estimator}')
+                continue
+        # top 10 rewards
+        for i,value in enumerate(data):
+            indexes = (-np.sum(value['content'],axis=1)).argsort()
+            data[i]['content']=value['content'][indexes[:10],:]
+            data[i]['indexes']=value['indexes'][indexes[:10],:]
+        # compute statistics
+        for i,value in enumerate(data):
+            mean = value['content'].mean(axis=0)
+            std = value['content'].std(axis=0)
+            data[i]['content'] = [data[i]['indexes'][0,:],mean,std]
+        # plot the curves
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.set_title(game['plotTitle'])
+        ax.set_xlabel("trajectories")
+        ax.set_ylabel("reward")
+        for i, value in enumerate(data):
+            item = value['content']
+            label = value['slug']
+            plt.plot(item[0], item[1], label=label)
+            plt.fill_between(
+                item[0],
+                np.maximum(item[1] - item[2],0),
+                np.minimum(item[1] + item[2],maxReward),
+                alpha=0.2
+            )
+        fig.legend(frameon=False, loc='upper center', ncol=len(data))
+        plt.grid()
+        plt.savefig(game['plotTitle'] + '.svg')
+        plt.show()
 
     def train(self, estimator, game):
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
         game = self.games[game]['instance']
-        estimator = self.estimators[estimator](game)
+        # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
         print("Starting training")
-        result = game.generate_data(estimator)
+        result = game.generate_data(self.estimators[estimator])
 
 
 if __name__ == '__main__':
