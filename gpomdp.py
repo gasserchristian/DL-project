@@ -58,8 +58,7 @@ class Gpomdp(Estimator):
         mean_over_returns = statistics.mean(rewards_to_go)
 
         norm_rewards_to_go = [reward_to_go - mean_over_returns for reward_to_go in rewards_to_go]
-        log_probs = np.cumsum(log_probs)  # sum previous log probabilities up to the current step
-
+        log_probs = torch.cumsum(torch.stack(log_probs),dim=0) # sum previous log probabilities up to the current step
         policy_loss = []
         k = 0  # counter
 
