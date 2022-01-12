@@ -21,6 +21,7 @@ env = gym.make('CartPole-v0')
 env.seed(0)
 
 print_every=100
+store_every=10
 
 class Policy(nn.Module):
 	# neural network for the policy
@@ -60,6 +61,8 @@ class cart_pole(game):
 		self.snapshot_policy = Policy().to(device) # policy "snapshot" network used by some algorithms
 		self.policy = Policy().to(device) # policy network parameters
 		self.sample_policy = Policy().to(device) # sample policy used during evaluation
+
+		self.rewards_buffer = []
 
 	def reset(self):
 		global env
@@ -105,6 +108,8 @@ class cart_pole(game):
 
 		if self.number_of_sampled_trajectories % print_every == 0:
 			print(sum(rewards))
+		if self.number_of_sampled_trajectories % store_every == 0:
+			self.rewards_buffer.append(sum(rewards))
 		self.number_of_sampled_trajectories += 1
 		return trajectory
 
@@ -128,28 +133,29 @@ class cart_pole(game):
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
 		"""
-		# trajectories = []
-		# mean_reward = []
-		# CI_reward = []
 		results = []
 		for _ in range(number_of_runs):
 			self.reset()
 			estimator_instance = estimator(self)
-			evaluations = []
+			# evaluations = []
 			while True:
 				estimator_instance.step(self) # performs one step of update for the selected estimator
 									   # this can be one or more episodes
 				# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-				evaluations.append((self.number_of_sampled_trajectories,self.evaluate()))
+				# evaluations.append((self.number_of_sampled_trajectories,self.evaluate()))
 				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
 				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
 					# print("finish",`${}`)
-					print(f'finish run {_+1} of {number_of_runs}')
+					print(f'finish run {_+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
 					self.number_of_sampled_trajectories = 0
-					results.append(evaluations)
+					results.append(self.rewards_buffer)
+					self.rewards_buffer = []
 					break
-		# print(np.array(results).shape)
+
+		minLength = np.min([len(item) for item in results])
+		for i in range(len(results)):
+			results[i] = results[i][:minLength]
 		# store a numpy binary
-		np.save('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy',np.array(results))
+		np.save('data-v2--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy',np.array(results))
 		# np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
 		# np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())

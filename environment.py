@@ -136,15 +136,14 @@ class Environment:
         for key, estimator in estimators.items():
             try:
                 file = np.load(
-                    'data-runs--'
+                    'data-v2--'
                     + type(game['instance']).__name__
                     + '_' + estimator.__name__
-                    + '.npy',allow_pickle=True
+                    + '.npy'
                 )
                 data.append({
-                    'content': file[:,:,1],
-                    'slug': key,
-					'indexes':file[:,:,0]
+                    'content': file[:,:],
+                    'slug': key
                 })
             except FileNotFoundError:
                 print(estimator.__name__)
@@ -154,12 +153,11 @@ class Environment:
         for i,value in enumerate(data):
             indexes = (-np.sum(value['content'],axis=1)).argsort()
             data[i]['content']=value['content'][indexes[:10],::interval]
-            data[i]['indexes']=value['indexes'][indexes[:10],::interval]
         # compute statistics
         for i,value in enumerate(data):
             mean = value['content'].mean(axis=0)
             std = value['content'].std(axis=0)
-            data[i]['content'] = [data[i]['indexes'][0,:],mean,std]
+            data[i]['content'] = [np.arange(len(mean))*10,mean,std]
         # plot the curves
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.set_title(game['plotTitle'])
@@ -180,14 +178,14 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def train(self, estimator, game):
+    def train(self, estimator, game, number_of_sampled_trajectories = 10000, number_of_runs = 30):
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
         game = self.games[game]['instance']
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
         print("Starting training")
-        result = game.generate_data(self.estimators[estimator],1000,20)
+        result = game.generate_data(self.estimators[estimator],number_of_sampled_trajectories,number_of_runs)
 
 
 if __name__ == '__main__':
@@ -209,13 +207,13 @@ if __name__ == '__main__':
 
     # environment.train(estimator='Reinforce',game='cart_pole')
     # environment.train(estimator='Gpomdp',game='cart_pole')
-    # environment.train(estimator='SarahPg',game='cart_pole')
-    # environment.train(estimator='PageStormPg',game='cart_pole')
-    # environment.train(estimator='Svrpg',game='cart_pole')
-    # environment.train(estimator='StormPg',game='cart_pole')
-    # environment.train(estimator='PagePg',game='cart_pole')
+    # environment.train(estimator='SarahPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
+    # environment.train(estimator='PageStormPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
+    # environment.train(estimator='Svrpg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
+    # environment.train(estimator='StormPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
+    # environment.train(estimator='PagePg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
     # environment.train(estimator='Gpomdp', game='cart_pole')
-
+    environment.plot('cart_pole',estimators='all')
     # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
-    environment.plot('cart_pole',estimators='PagePg',interval=1)
+    # environment.plot('cart_pole',estimators='PagePg',interval=1)
 # environment.plot('cart_pole',estimators='SarahPg')
