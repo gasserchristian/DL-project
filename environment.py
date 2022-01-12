@@ -185,10 +185,10 @@ class Environment:
         # num_traj=1000, reps=20, output_path="")
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
+        print(f"Starting training of {game} with {number_of_runs}x {number_of_sampled_trajectories} trajectories")
         game = self.games[game]['instance']
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
-        print(f"Starting training of {game} with {number_of_runs}x {number_of_sampled_trajectories} trajectories")
         result = game.generate_data(self.estimators[estimator],number_of_sampled_trajectories,number_of_runs,output_path)
 
 

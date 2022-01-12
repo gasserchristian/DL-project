@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Basic_Policy(nn.Module):
 	""" 
@@ -29,15 +28,15 @@ class Basic_Policy(nn.Module):
 		return F.softmax(x, dim=1)
 
 	def act(self, state): # returns action and its probability for the input state 
-		state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-		probs = self.forward(state).cpu()
+		state = torch.from_numpy(state).float().unsqueeze(0)
+		probs = self.forward(state)
 		model = Categorical(probs)
 		action = model.sample()
 		return action.item(), model.log_prob(action)
 
 	def log_prob(self, state, action): # returns the probability of taking given action in given state 
-		state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-		probs = self.forward(state).cpu()
+		state = torch.from_numpy(state).float().unsqueeze(0)
+		probs = self.forward(state)
 		model = Categorical(probs)
 		action = torch.tensor([action])
 		log_prob = model.log_prob(action)
@@ -58,9 +57,9 @@ class GaussianPolicy(nn.Module):
             nn.Linear(16, 8),
             hidden_nonlinearity,
             nn.Linear(8, output_dim)
-        ]).to(device)
+        ])
 
-        self.variance = torch.eye(output_dim, device=device) * 1e-3
+        self.variance = torch.eye(output_dim) * 1e-3
         
     def forward(self, x):
         
@@ -68,12 +67,8 @@ class GaussianPolicy(nn.Module):
             self.model(x), covariance_matrix=self.variance)
 
     def act(self, state):
-        # state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        # probs = self.forward(state).cpu()
-        # model = Categorical(probs)
-        # action = model.sample()
         
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        state = torch.from_numpy(state).float().unsqueeze(0)
         dist = self.forward(state)
         
 
@@ -82,10 +77,10 @@ class GaussianPolicy(nn.Module):
         sample = torch.clip(sample, -1, 1)
         log_prob = dist.log_prob(sample)
 
-        return sample.cpu(), log_prob.cpu()
+        return sample, log_prob
 
     def log_prob(self, state, action): # probability of taking action "action" in state "state"
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        state = torch.from_numpy(state).float().unsqueeze(0)
         probs = self.forward(state)
         log_prob = probs.log_prob(action)
-        return log_prob.cpu()
+        return log_prob

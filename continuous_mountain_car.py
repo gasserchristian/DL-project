@@ -17,7 +17,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 from collections import deque
 
-from policy import GaussianPolicy
+from policies import GaussianPolicy
 
 # from garage.torch.modules import GaussianMLPModule
 
@@ -36,9 +36,7 @@ class continuous_mountain_car(game):
         self.gamma = 1.0
         self.number_of_sampled_trajectories = 0 # total number of sampled trajectories
 
-        self.snapshot_policy = Policy() # policy "snapshot" network used by some algorithms
-        self.policy = Policy() # policy network parameters
-        self.sample_policy = Policy()# sample policy used during evaluation
+        self.reset()
 
     def reset(self):
         global env
@@ -46,9 +44,9 @@ class continuous_mountain_car(game):
         torch.manual_seed(0)
         env.seed(0)
         env = gym.make('MountainCarContinuous-v0')
-        self.snapshot_policy = GaussianPolicy()
-        self.policy = GaussianPolicy()
-        self.sample_policy = GaussianPolicy()
+        self.snapshot_policy = GaussianPolicy() # policy "snapshot" network used by some algorithms
+        self.policy = GaussianPolicy() # policy network parameters
+        self.sample_policy = GaussianPolicy() # sample policy used during evaluation
 
     def sample(self, max_t = 1000, eval = 0):
         """

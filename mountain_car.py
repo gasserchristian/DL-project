@@ -13,49 +13,27 @@ import torch.optim as optim
 from torch.distributions import Categorical
 from collections import deque
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device ='cpu'
+
+from policies import Basic_Policy
+
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device ='cpu'
 env = gym.make('MountainCar-v0')
 env.seed(0)
 
 max_t = 200
 gamma = 0.95
 print_every = 100
-
-
-class Policy(nn.Module):
-    # neural network for the policy
-    # TODO: change NN architecture to the optimal for the mountain-car game
-    def __init__(self, state_size=2, action_size=3, hidden_size=16):
-        super(Policy, self).__init__()
-        self.fc1 = nn.Linear(state_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, action_size)
-
-    def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = self.fc2(x)
-        # we just consider 1 dimensional probability of action
-        return F.softmax(x, dim=1)
-
-    def act(self, state):
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        probs = self.forward(state).cpu()
-        # print(probs)
-        model = Categorical(probs)
-        action = model.sample()
-        # print(action)
-        # action = int(torch.bernoulli(probs[1]).item())
-        return action.item(), model.log_prob(action)
-
+store_every=10
 
 class mountain_car(game):
     def __init__(self):
         self.gamma = 1.0
         self.number_of_sampled_trajectories = 0 # total number of sampled trajectories
 
-        self.snapshot_policy = Policy().to(device) # policy "snapshot" network used by some algorithms
-        self.policy = Policy().to(device) # policy network parameters
-        self.sample_policy = Policy().to(device) # sample policy used during evaluation
+        self.reset()
+        self.rewards_buffer = []
+
 
     def reset(self):
         global env
@@ -63,9 +41,9 @@ class mountain_car(game):
         torch.manual_seed(0)
         env.seed(0)
         env = gym.make('MountainCar-v0')
-        self.snapshot_policy = Policy().to(device)
-        self.policy = Policy().to(device)
-        self.sample_policy = Policy().to(device)
+        self.snapshot_policy = Basic_Policy(state_size=2, action_size=3, hidden_size=16)
+        self.policy = Basic_Policy(state_size=2, action_size=3, hidden_size=16)
+        self.sample_policy = Basic_Policy(state_size=2, action_size=3, hidden_size=16)
 
     def sample(self, max_t = 1000, eval = 0):
         """
@@ -109,58 +87,58 @@ class mountain_car(game):
                         'probs': saved_log_probs, 'rewards': rewards}
 
         if self.number_of_sampled_trajectories % print_every == 0:
-			print(sum(rewards))
-		if self.number_of_sampled_trajectories % store_every == 0:
-			self.rewards_buffer.append(sum(rewards))
-		self.number_of_sampled_trajectories += 1
-		return trajectory
+            print(sum(rewards))
+        if self.number_of_sampled_trajectories % store_every == 0:
+            self.rewards_buffer.append(sum(rewards))
+        self.number_of_sampled_trajectories += 1
+        return trajectory
 
-	def evaluate(self): # performs the evaluation of the current policy NN
-		# def evaluate(self, number_of_runs = 30):
-		number_of_sampled_trajectories = self.number_of_sampled_trajectories
-		results = self.sample(200,eval=1)['rewards']
-		# results = [np.sum(self.sample(200, eval = 1)['rewards']) for i in range(number_of_runs)]
-		self.number_of_sampled_trajectories = number_of_sampled_trajectories
+    def evaluate(self): # performs the evaluation of the current policy NN
+        # def evaluate(self, number_of_runs = 30):
+        number_of_sampled_trajectories = self.number_of_sampled_trajectories
+        results = self.sample(200,eval=1)['rewards']
+        # results = [np.sum(self.sample(200, eval = 1)['rewards']) for i in range(number_of_runs)]
+        self.number_of_sampled_trajectories = number_of_sampled_trajectories
 
-		# TODO:
-		# it should return 3 values:
-		# 1) self.number_of_sampled_trajectories
-		# 2) mean performance
-		# 3) confidence interval
-		return np.sum(results)
-		# return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
+        # TODO:
+        # it should return 3 values:
+        # 1) self.number_of_sampled_trajectories
+        # 2) mean performance
+        # 3) confidence interval
+        return np.sum(results)
+        # return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
-	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
-		"""
-		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
-		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
-		"""
-		results = []
-		for _ in range(number_of_runs):
-			self.reset()
-			estimator_instance = estimator(self)
-			# evaluations = []
-			while True:
-				estimator_instance.step(self) # performs one step of update for the selected estimator
-									   # this can be one or more episodes
-				# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-				# evaluations.append((self.number_of_sampled_trajectories,self.evaluate()))
-				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
-				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
-					# print("finish",`${}`)
-					print(f'finish run {_+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
-					self.number_of_sampled_trajectories = 0
-					results.append(self.rewards_buffer)
-					self.rewards_buffer = []
-					break
+    def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
+        """
+        generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
+        until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
+        """
+        results = []
+        for _ in range(number_of_runs):
+            self.reset()
+            estimator_instance = estimator(self)
+            # evaluations = []
+            while True:
+                estimator_instance.step(self) # performs one step of update for the selected estimator
+                                       # this can be one or more episodes
+                # after policy NN updates, we need to evaluate this updated policy using self.evaluate()
+                # evaluations.append((self.number_of_sampled_trajectories,self.evaluate()))
+                # TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
+                if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
+                    # print("finish",`${}`)
+                    print(f'finish run {_+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
+                    self.number_of_sampled_trajectories = 0
+                    results.append(self.rewards_buffer)
+                    self.rewards_buffer = []
+                    break
 
-		minLength = np.min([len(item) for item in results])
-		for i in range(len(results)):
-			results[i] = results[i][:minLength]
-		# store a numpy binary
-		name = 'data-v2--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy'
-		file_path = os.path.join(root_path, name)
-		# store a numpy binary
-		np.save(file_path,np.array(results))
-		# np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
-		# np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())
+        minLength = np.min([len(item) for item in results])
+        for i in range(len(results)):
+            results[i] = results[i][:minLength]
+        # store a numpy binary
+        name = 'data-v2--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy'
+        file_path = os.path.join(root_path, name)
+        # store a numpy binary
+        np.save(file_path,np.array(results))
+        # np.savetxt('data-runs--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(results))
+        # np.savetxt('data--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.txt',np.array(evaluations).transpose())
