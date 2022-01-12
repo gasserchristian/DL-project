@@ -490,7 +490,7 @@ class continuous_mountain_car(game):
         return np.sum(self.sample(200,eval=1)['rewards'])
         # return (self.number_of_sampled_trajectories,np.mean(results),np.std(results))
 
-    def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30):
+    def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
         """
         generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
         until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
