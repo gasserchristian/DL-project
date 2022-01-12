@@ -43,3 +43,49 @@ class Basic_Policy(nn.Module):
 		log_prob = model.log_prob(action)
 		return log_prob
 
+
+
+class GaussianPolicy(nn.Module):
+    def __init__(self,
+                 input_dim =2,
+                 output_dim = 1,
+                 hidden_nonlinearity=nn.Tanh()):
+        super().__init__()
+
+        self.model = nn.Sequential(*[
+            nn.Linear(input_dim, 16),
+            hidden_nonlinearity,
+            nn.Linear(16, 8),
+            hidden_nonlinearity,
+            nn.Linear(8, output_dim)
+        ]).to(device)
+
+        self.variance = torch.eye(output_dim, device=device) * 1e-3
+        
+    def forward(self, x):
+        
+        return torch.distributions.multivariate_normal.MultivariateNormal(
+            self.model(x), covariance_matrix=self.variance)
+
+    def act(self, state):
+        # state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        # probs = self.forward(state).cpu()
+        # model = Categorical(probs)
+        # action = model.sample()
+        
+        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        dist = self.forward(state)
+        
+
+        # print(action)
+        sample = dist.sample()
+        sample = torch.clip(sample, -1, 1)
+        log_prob = dist.log_prob(sample)
+
+        return sample.cpu(), log_prob.cpu()
+
+    def log_prob(self, state, action): # probability of taking action "action" in state "state"
+        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        probs = self.forward(state)
+        log_prob = probs.log_prob(action)
+        return log_prob.cpu()
