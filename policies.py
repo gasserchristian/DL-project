@@ -16,7 +16,7 @@ class Basic_Policy(nn.Module):
 	"""
 
 	def __init__(self, state_size=4, action_size=2, hidden_size=32):
-		super(Policy, self).__init__()
+		super(Basic_Policy, self).__init__()
 		self.fc1 = nn.Linear(state_size, hidden_size)
 		self.fc2 = nn.Linear(hidden_size, action_size)
 

@@ -1,4 +1,3 @@
-from cart_pole import Policy 
 from estimator import Estimator
 
 import torch

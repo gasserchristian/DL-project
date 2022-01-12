@@ -1,7 +1,6 @@
 from estimator import VrEstimator
 import torch
 import statistics
-from cart_pole import Policy
 from operator import add
 
 """
@@ -24,9 +23,6 @@ class Svrpg(VrEstimator):
         self.t = self.m  # counter within epoch
 
         self.mu = None  # return of outer loop
-
-        self.current_policy = Policy()  # policy network
-        self.snapshot_policy = Policy()  # snapshot neural network
 
         self.lr = lr  # learning rate
         super().__init__(self, lr)
