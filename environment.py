@@ -14,11 +14,14 @@ from pagepg import PagePg
 from pagestormpg import PageStormPg
 
 from cart_pole import cart_pole
+from continuous_mountain_car import continuous_mountain_car
+from mountain_car import mountain_car
+from lunar_lander import lunar_lander
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+import argparse
 class Environment:
     def registerEstimatorClasses(self, items):
         """
@@ -178,17 +181,20 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def train(self, estimator, game, number_of_sampled_trajectories = 10000, number_of_runs = 30):
+    def train(self, estimator, game, number_of_sampled_trajectories = 10000, number_of_runs = 30, output_path=""):
+        # num_traj=1000, reps=20, output_path="")
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
         game = self.games[game]['instance']
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
-        print("Starting training")
-        result = game.generate_data(self.estimators[estimator],number_of_sampled_trajectories,number_of_runs)
+        print(f"Starting training of {game} with {number_of_runs}x {number_of_sampled_trajectories} trajectories")
+        result = game.generate_data(self.estimators[estimator],number_of_sampled_trajectories,number_of_runs,output_path)
 
 
 if __name__ == '__main__':
+
+
     environment = Environment()
 
     environment.registerEstimatorClasses([
@@ -202,18 +208,27 @@ if __name__ == '__main__':
         {'slug': 'Svrpg_auto', 'class': SvrpgAuto},
     ])
     environment.registerGameInstances([
-        {'slug': 'cart_pole', 'plotTitle': 'Cart pole', 'instance': cart_pole()}
+        {'slug': 'cart_pole', 'plotTitle': 'Cart pole', 'instance': cart_pole()},
+        {'slug': 'lunar_lander', 'plotTitle': 'Lunar Lander', 'instance': lunar_lander()},
+        {'slug': 'continuous_mountain_car', 'plotTitle': 'Continuous mountian car', 'instance': continuous_mountain_car()},
+        {'slug': 'mountain_car', 'plotTitle': ' mountian car', 'instance': mountain_car()}
     ])
 
-    # environment.train(estimator='Reinforce',game='cart_pole')
-    # environment.train(estimator='Gpomdp',game='cart_pole')
-    # environment.train(estimator='SarahPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
-    # environment.train(estimator='PageStormPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
-    # environment.train(estimator='Svrpg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
-    # environment.train(estimator='StormPg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
-    # environment.train(estimator='PagePg',game='cart_pole', number_of_sampled_trajectories = 200, number_of_runs = 5)
-    # environment.train(estimator='Gpomdp', game='cart_pole')
-    environment.plot('cart_pole',estimators='all')
-    # environment.plot('cart_pole',estimators=['StormPg','SarahPg'])
-    # environment.plot('cart_pole',estimators='PagePg',interval=1)
-# environment.plot('cart_pole',estimators='SarahPg')
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--game", type=str, choices=list(environment.games.keys()), help="Game to be tested", default="cart_pole")
+    parser.add_argument("--estimator", type=str, choices=list(environment.estimators.keys()) + ["all"], help="Estimator to be used", default="Gpomdp")
+    parser.add_argument("--output", type=str, help="Output directory path", default="./")
+    parser.add_argument("--num_traj", type=int,  help="Number of Total Trajectories", default=10000)
+    parser.add_argument("--iter", type=int,  help="Number of repeted iterations", default=20)
+    parser.add_argument("--plot", action="store_true",
+                    help="Plot the given estimator")
+    parser.add_argument("--use_cuda", action="store_true",
+                    help="Use CUDA")
+    args = parser.parse_args()
+
+
+    if args.plot:
+        environment.plot(estimators=args.estimator, game=args.game)
+    else:
+        environment.train(estimator=args.estimator, game=args.game, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)
