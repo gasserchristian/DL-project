@@ -60,13 +60,13 @@ class Reinforce(Estimator):
         for log_prob in log_probs:
             policy_loss.append(log_prob * total_rewards)
 
-            # After that, we concatenate whole policy loss in 0th dimension
-            policy_loss = torch.cat(policy_loss).sum()
+        # After that, we concatenate whole policy loss in 0th dimension
+        policy_loss = torch.cat(policy_loss).sum()
 
-            policy_network.zero_grad()
-            policy_loss.backward()
+        policy_network.zero_grad()
+        policy_loss.backward()
 
-            grad_dict = {k: v.grad for k, v in
-                         policy_network.named_parameters()}  # one alternative way to compute gradient
+        grad_dict = {k: v.grad for k, v in
+                     policy_network.named_parameters()}  # one alternative way to compute gradient
 
-            return grad_dict  # returns dictionary!
+        return grad_dict  # returns dictionary!

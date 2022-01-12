@@ -61,4 +61,5 @@ class PagePg(VrEstimator):
         # Update snapshot
         self.snapshot_update(game)
 
+        # Update network
         self.network_update(gradient_estimators, game, first_iteration=False)  # then we update current policy network

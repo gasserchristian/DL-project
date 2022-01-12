@@ -2,6 +2,7 @@ from estimator import Estimator
 import torch
 import torch.optim as optim
 import statistics
+import numpy as np
 
 
 # average of rewards-to-go serves as baseline
@@ -10,7 +11,7 @@ class Gpomdp(Estimator):
         self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
         self.B = B  # batch size
 
-        #set sample policy to current policy
+        # set sample policy to current policy
         game.sample_policy = game.policy
 
     def step(self, game):
@@ -27,13 +28,11 @@ class Gpomdp(Estimator):
 
         policy_network = game.policy
 
-
         # Here we manually set gradients of all network parameters
         for (policy_name, policy_param) in policy_network.named_parameters():
             policy_param.grad = -total_gradient[policy_name]
 
         self.optimizer.step()  # optimizer step
-
 
     def gpomdp_gradient_estimate(self, trajectory, game):
         """
@@ -59,12 +58,13 @@ class Gpomdp(Estimator):
         mean_over_returns = statistics.mean(rewards_to_go)
 
         norm_rewards_to_go = [reward_to_go - mean_over_returns for reward_to_go in rewards_to_go]
+        log_probs = np.cumsum(log_probs)  # sum previous log probabilities up to the current step
 
         policy_loss = []
         k = 0  # counter
 
         for log_prob in log_probs:
-            policy_loss.append(log_prob * (gamma ** k) * norm_rewards_to_go[k])
+            policy_loss.append(-log_prob * norm_rewards_to_go[k])
             k += 1
 
         # After that, we concatenate whole policy loss in 0th dimension
