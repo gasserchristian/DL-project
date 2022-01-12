@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import random
 from torch.distributions import Categorical
 from collections import deque
 from policies import Basic_Policy
@@ -40,6 +41,11 @@ class cart_pole(game):
 		global env
 		# TODO: perform reset of policy networks
 		torch.manual_seed(0)
+		torch.cuda.manual_seed(0)
+		torch.random.manual_seed(0)
+		env.action_space.seed(self.env_seed)
+		np.random.seed(0)
+		random.seed(0)
 		env.seed(0)
 		env = gym.make('CartPole-v0')
 		self.snapshot_policy = Basic_Policy().to(device)
