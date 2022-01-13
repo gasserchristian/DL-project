@@ -7,26 +7,26 @@ class PageStormPg(VrEstimator):
 
     # define here snapshot and current NNs
     def __init__(self, game, args):
-        self.m = args.subit  # max allowed number of subiterations
+        self.m = args["subit"]  # max allowed number of subiterations
 
-        self.N = args.batch_size  # batch size
-        self.B = args.mini_batch_size  # mini-batch size
+        self.N = args["batch_size"]  # batch size
+        self.B = args["mini_batch_size"]  # mini-batch size
 
         self.t = self.m  # counter within epoch
 
         self.mu = None  # return of outer loop (mean gradient calculated using N samples)
 
-        self.optimizer_first = optim.Adam(game.policy.parameters(), lr=args.flr)
-        self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=args.lr)
+        self.optimizer_first = optim.Adam(game.policy.parameters(), lr=args["flr"])
+        self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=args["lr"])
 
         self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
-        self.main_lr = args.mlr  # this is magnitude of update by self.optimizer_sub
+        self.main_lr = args["mlr"]  # this is magnitude of update by self.optimizer_sub
 
-        if args.prob is None:
+        if args["prob"] is None:
             self.prob = self.B / (self.N + self.B)  # switching probability
         self.p = 1  # sampled probability value: if 1, do full gradient calculation; if 0, do SARAH (initialize to 1)
         self.mu = None  # return of outer loop
-        self.alpha = args.alpha
+        self.alpha = args["alpha"]
         self.policy_parameter_list = []
 
     def step(self, game):  # one step of update

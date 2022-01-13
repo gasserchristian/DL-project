@@ -182,7 +182,7 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def train(self, estimator, game, args, number_of_sampled_trajectories = 10000, number_of_runs = 30, output_path=""):
+    def train(self, estimator, game, args, sweep_parameter,hyper_parameters, number_of_sampled_trajectories = 10000, number_of_runs = 30, output_path=""):
         # num_traj=1000, reps=20, output_path="")
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
@@ -190,7 +190,7 @@ class Environment:
         game = self.games[game]['instance']
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
-        result = game.generate_data(self.estimators[estimator],args,number_of_sampled_trajectories,number_of_runs,output_path)
+        result = game.generate_data(self.estimators[estimator],hyper_parameters,sweep_parameter, number_of_sampled_trajectories,number_of_runs,output_path)
 
 
 if __name__ == '__main__':
@@ -275,7 +275,7 @@ if __name__ == '__main__':
     }
     configured_hyper_parameters = {k: v for k, v in configured_hyper_parameters.items() if v is not None}
     
-
+    sweep_parameter= "_".join([f"{v}:{configured_hyper_parameters[v]}" for v in configured_hyper_parameters])
     
     hyper_parameters = {**default_hyper_parameters, **estimator_hyper_parameters[args.estimator], **configured_hyper_parameters}
     
@@ -286,4 +286,4 @@ if __name__ == '__main__':
     if args.plot:
         environment.plot(estimators=args.estimator, game=args.game)
     else:
-        environment.train(estimator=args.estimator, game=args.game, args=args, hyper_parameters=hyper_parameters, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)
+        environment.train(estimator=args.estimator, game=args.game, args=args, sweep_parameter=sweep_parameter ,hyper_parameters=hyper_parameters, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)

@@ -9,8 +9,8 @@ import numpy as np
 class Gpomdp(Estimator):
     def __init__(self, game, args):
         # default lr = 5e-2
-        self.optimizer = optim.Adam(game.policy.parameters(), lr=args.lr)
-        self.B = args.mini_batch_size  # batch size
+        self.optimizer = optim.Adam(game.policy.parameters(), lr=args["lr"])
+        self.B = args["mini_batch_size"]  # batch size
 
         # set sample policy to current policy
         game.sample_policy = game.policy

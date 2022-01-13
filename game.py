@@ -36,15 +36,17 @@ class game(metaclass=ABCMeta):
 	def sample(self, max_t, eval):
 		pass
 
-	def generate_data(self, estimator, args, hyper_parameters, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
+	def generate_data(self, estimator, hyper_parameters, sweep_parameter, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
 		"""
+
+
 		results = []
 		for i in range(number_of_runs):
 			self.reset(i) # Each run has different seed, but same across estimators
-			estimator_instance = estimator(self,hyper_parameters)
+			estimator_instance = estimator(self, hyper_parameters)
 			# evaluations = []
 			while True:
 				estimator_instance.step(self) # performs one step of update for the selected estimator
@@ -59,13 +61,12 @@ class game(metaclass=ABCMeta):
 					self.rewards_buffer = []
 					break
 
+		name = f"{type(self).__name__}_{type(estimator_instance).__name__}__{str(number_of_sampled_trajectories)}__{str(number_of_runs)}_{str(estimator_instance.B)}_{sweep_parameter}"
 		minLength = np.min([len(item) for item in results])
 		for i in range(len(results)):
 			results[i] = results[i][:minLength]
 		# store a numpy binary
-		name = +type(self).__name__+'_'+type(estimator_instance).__name__+'__'
-		name +=str(number_of_sampled_trajectories)+'__'
-		name +=str(number_of_runs)+str(estimator_instance.B)
+
 		name +=parser(str(self.gamma))+'.npy'
 		file_path = os.path.join(root_path, name)
 		# store a numpy binary
