@@ -42,8 +42,8 @@ class game(metaclass=ABCMeta):
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
 		"""
 		results = []
-		for _ in range(number_of_runs):
-			self.reset()
+		for i in range(number_of_runs):
+			self.reset(i) # Each run has different seed, but same across estimators
 			estimator_instance = estimator(self)
 			# evaluations = []
 			while True:
@@ -54,7 +54,7 @@ class game(metaclass=ABCMeta):
 				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
 				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
 					# print("finish",`${}`)
-					print(f'finish run {_+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
+					print(f'finish run {i+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
 					self.number_of_sampled_trajectories = 0
 					results.append(self.rewards_buffer)
 					self.rewards_buffer = []

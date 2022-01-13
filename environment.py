@@ -17,6 +17,7 @@ from cart_pole import cart_pole
 from continuous_mountain_car import continuous_mountain_car
 from mountain_car import mountain_car
 from lunar_lander import lunar_lander
+from pendulum import pendulum
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -211,7 +212,8 @@ if __name__ == '__main__':
         {'slug': 'cart_pole', 'plotTitle': 'Cart pole', 'instance': cart_pole()},
         {'slug': 'lunar_lander', 'plotTitle': 'Lunar Lander', 'instance': lunar_lander()},
         {'slug': 'continuous_mountain_car', 'plotTitle': 'Continuous mountian car', 'instance': continuous_mountain_car()},
-        {'slug': 'mountain_car', 'plotTitle': ' mountian car', 'instance': mountain_car()}
+        {'slug': 'mountain_car', 'plotTitle': ' Mountian car', 'instance': mountain_car()}
+        {'slug': 'pendulum', 'plotTitle': 'Pendulum', 'instance': pendulum()}
     ])
 
 
