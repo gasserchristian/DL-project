@@ -115,7 +115,7 @@ class Environment:
             plt.plot(item[0], item[1], label=label)
             plt.fill_between(
                 item[0],
-                np.maximum(item[1] - item[2],0),
+                item[1] - item[2],
                 np.minimum(item[1] + item[2],maxReward),
                 alpha=0.2
             )
@@ -127,7 +127,7 @@ class Environment:
     def plot_by_file(self, files, interval=5):
         games = {}
         for f in files:
-            name = f.name           
+            name = f.name
             if not name.endswith('.npy'):
                 print(f"{name}Not a result file")
 
@@ -228,7 +228,7 @@ class Environment:
             plt.show()
 
 
-    
+
     def plot(self, game, estimators='all',interval=1):
         game = self.games[game]
         data = []
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument("--output", type=str, help="Output directory path", default="./")
     parser.add_argument("--num_traj", type=int,  help="Number of Total Trajectories", default=10000)
     parser.add_argument("--iter", type=int,  help="Number of repeted iterations", default=20)
-    
+
     parser.add_argument("--subit", type=int,  help="Max allowed number of subiterations")
     parser.add_argument("--batch_size", type=int,  help="Batch Size")
     parser.add_argument("--mini_batch_size", type=int,  help="Mini Batch Size")
@@ -348,12 +348,12 @@ if __name__ == '__main__':
                     help="Plot the given estimator")
     parser.add_argument("--use_cuda", action="store_true",
                     help="Use CUDA")
-    
+
     args = parser.parse_args()
 
 
-    
-    
+
+
     default_hyper_parameters = {
             "subit": 3,
             "batch_size": 25,
@@ -376,7 +376,7 @@ if __name__ == '__main__':
         "Svrpg_auto": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
         "all": {}
     }
-    
+
     configured_hyper_parameters = {
         "subit": args.subit,
         "batch_size": args.batch_size,
@@ -388,12 +388,12 @@ if __name__ == '__main__':
         "alpha": args.alpha
     }
     configured_hyper_parameters = {k: v for k, v in configured_hyper_parameters.items() if v is not None}
-    
+
     sweep_parameter= "_".join([f"{v}:{configured_hyper_parameters[v]}" for v in configured_hyper_parameters])
-    
+
     hyper_parameters = {**default_hyper_parameters, **estimator_hyper_parameters[args.estimator], **configured_hyper_parameters}
-    
-    
+
+
     if args.plot_files:
         environment.plot_by_file(args.plot_files)
     elif args.plot:
