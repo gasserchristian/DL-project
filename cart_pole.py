@@ -41,7 +41,7 @@ class cart_pole(game):
 		self.policy = Basic_Policy() # policy network parameters
 		self.sample_policy = Basic_Policy() # sample policy used during evaluation
 
-	def sample(self, max_t = 1000, eval = 0):
+	def sample(self, max_t = 1000, eval = False):
 		"""
 		sample a trajectory
 		{state, action, log_prob, reward}

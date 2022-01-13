@@ -231,6 +231,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float,  help="Learning rate")
     parser.add_argument("--mlr", type=float,  help="this is magnitude of update by self.optimizer_sub")
     parser.add_argument("--prob", type=float,  help="Probability")
+    parser.add_argument("--alpha", type=float,  help="Alpha")
 
     parser.add_argument("--plot", action="store_true",
                     help="Plot the given estimator")
@@ -243,23 +244,12 @@ if __name__ == '__main__':
             "subit": 3,
             "batch_size": 25,
             "mini_batch_size": 5,
-            "flr": 1e-5,
-            "lr": 1e-5,
-            "mlr": 1e-5,
-            "prob":1
+            "flr": 1e-2,
+            "lr": 1e-2,
+            "mlr": 1,
+            "prob":0.5,
+            "alpha":0.9
         }
-
-    configured_hyper_parameters = {
-        "subit": args.subit,
-        "batch_size": args.batch_size,
-        "mini_batch_size": args.mini_batch_size,
-        "flr": args.flr,
-        "lr": args.lr,
-        "mlr": args.mlr,
-        "prob": args.prob
-    }
-    configured_hyper_parameters = {k: v for k, v in configured_hyper_parameters.items() if v is not None}
-    
 
     estimator_hyper_parameters  = {
         "Reinforce": {"mini_batch_size":10, "lr": 1e-2 },
@@ -273,10 +263,25 @@ if __name__ == '__main__':
         "all": {}
     }
     
+    configured_hyper_parameters = {
+        "subit": args.subit,
+        "batch_size": args.batch_size,
+        "mini_batch_size": args.mini_batch_size,
+        "flr": args.flr,
+        "lr": args.lr,
+        "mlr": args.mlr,
+        "prob": args.prob,
+        "alpha": args.alpha
+    }
+    configured_hyper_parameters = {k: v for k, v in configured_hyper_parameters.items() if v is not None}
+    
+
+    
     hyper_parameters = {**default_hyper_parameters, **estimator_hyper_parameters[args.estimator], **configured_hyper_parameters}
     
+    print("Hyper parameters:")
     print(hyper_parameters)
-    exit()
+    
 
     if args.plot:
         environment.plot(estimators=args.estimator, game=args.game)
