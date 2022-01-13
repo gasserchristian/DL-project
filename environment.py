@@ -23,6 +23,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import argparse
+import re
+import os
+
+
 class Environment:
     def registerEstimatorClasses(self, items):
         """
@@ -119,6 +123,112 @@ class Environment:
         plt.grid()
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
+
+    def plot_by_file(self, files, interval=5):
+        games = {}
+        for f in files:
+            name = f.name           
+            if not name.endswith('.npy'):
+                print(f"{name}Not a result file")
+
+            game = None
+            for g in list(self.games.keys()):
+                if g in name:
+                    game = g
+                    break
+            if game == None:
+                print(f"Couldnt get game of {name}")
+                continue
+
+            estimator = None
+            for e in list(self.estimators.keys()):
+                if e in name:
+                    estimator = e
+                    break
+
+            if estimator == None:
+                print(f"Couldnt get estimator of {name}")
+                continue
+
+            # Extract parameters:
+
+            reg = re.search(r"__([0-9]+)__([0-9]+)_([0-9]+)_(((\w+):(.+)_)|((\w+):(.+)-))?", name)
+            if reg == None:
+                print(f"Failed to parse prameters of {name}")
+                continue
+
+            captured = reg.groups()
+
+            trajectories = int(captured[0])
+            iters = int(captured[1])
+            batch = int(captured[2])
+
+            sweep_name = captured[5]
+            sweep_value = None
+            if sweep_name == None:
+                sweep_name = captured[8]
+                if sweep_name != None:
+                    sweep_value = float(captured[9])
+            else:
+                sweep_value = float(captured[6])
+            print(f"Parsed {name} with game {game} est {estimator} {iters}x{trajectories} batch:{batch} {sweep_name}: {sweep_value}")
+            if game not in games:
+                games[game] = {}
+            if estimator not in games[game]:
+                games[game][estimator] = []
+
+            raw_data = np.load(name)[:,:]
+
+            indexes = (-np.sum(raw_data,axis=1)).argsort()
+            best=raw_data[indexes[:10],::interval]
+
+            mean = best.mean(axis=0)
+            std = best.std(axis=0)
+            statistics = np.array([np.arange(len(mean))*10,mean,std])
+
+            if sweep_name != None:
+                extra_name = f"_{sweep_name}:{sweep_value}"
+            else:
+                extra_name = ""
+            data = {
+                "raw_data": raw_data,
+                'statistics': statistics,
+                'extra_name': extra_name
+
+            }
+
+            games[game][estimator].append(data)
+
+
+        maxReward = 200
+
+        # Plot 1 grph per game
+        for game_name, estimators in games.items():
+
+            title = f"Trajectory score of {game_name} environment"
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.set_title(title)
+            ax.set_xlabel("trajectories")
+            ax.set_ylabel("reward")
+            for estimator_name, estimator in estimators.items():
+                for run in estimator:
+                    item = run['statistics']
+                    label = estimator_name + run['extra_name']
+                    plt.plot(item[0], item[1], label=label)
+                    plt.fill_between(
+                        item[0],
+                        np.maximum(item[1] - item[2],0),
+                        np.minimum(item[1] + item[2],maxReward),
+                        alpha=0.2
+                    )
+            fig.legend(frameon=False, loc='upper center', ncol=len(data))
+            plt.grid()
+            plt.savefig(title + '.svg')
+            plt.show()
+
+
+    
     def plot(self, game, estimators='all',interval=1):
         game = self.games[game]
         data = []
@@ -233,12 +343,16 @@ if __name__ == '__main__':
     parser.add_argument("--prob", type=float,  help="Probability")
     parser.add_argument("--alpha", type=float,  help="Alpha")
 
+    parser.add_argument("--plot_files", type=argparse.FileType('r'), nargs='+', help="Plot Specific Files")
     parser.add_argument("--plot", action="store_true",
                     help="Plot the given estimator")
     parser.add_argument("--use_cuda", action="store_true",
                     help="Use CUDA")
     
     args = parser.parse_args()
+
+
+    
     
     default_hyper_parameters = {
             "subit": 3,
@@ -279,11 +393,12 @@ if __name__ == '__main__':
     
     hyper_parameters = {**default_hyper_parameters, **estimator_hyper_parameters[args.estimator], **configured_hyper_parameters}
     
-    print("Hyper parameters:")
-    print(hyper_parameters)
     
-
-    if args.plot:
+    if args.plot_files:
+        environment.plot_by_file(args.plot_files)
+    elif args.plot:
         environment.plot(estimators=args.estimator, game=args.game)
     else:
+        print("Hyper parameters:")
+        print(hyper_parameters)
         environment.train(estimator=args.estimator, game=args.game, args=args, sweep_parameter=sweep_parameter ,hyper_parameters=hyper_parameters, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)
