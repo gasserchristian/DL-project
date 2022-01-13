@@ -66,7 +66,8 @@ class game(metaclass=ABCMeta):
 		# store a numpy binary
 		name = +type(self).__name__+'_'+type(estimator_instance).__name__+'__'
 		name +=str(number_of_sampled_trajectories)+'__'
-		name +=str(number_of_runs)+str(estimator_instance.B)+'.npy'
+		name +=str(number_of_runs)+str(estimator_instance.B)
+		name +=parser(str(self.gamma))+'.npy'
 		file_path = os.path.join(root_path, name)
 		# store a numpy binary
 		np.save(file_path,np.array(results))
