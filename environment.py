@@ -182,7 +182,7 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def train(self, estimator, game, number_of_sampled_trajectories = 10000, number_of_runs = 30, output_path=""):
+    def train(self, estimator, game, args, number_of_sampled_trajectories = 10000, number_of_runs = 30, output_path=""):
         # num_traj=1000, reps=20, output_path="")
         # trains the chosen estimator on the selected RL game and generates the results as a CSV file consisting
         # of following 3d tuples: (number of trajectories, average return, 90% confidence bounds)
@@ -223,14 +223,62 @@ if __name__ == '__main__':
     parser.add_argument("--output", type=str, help="Output directory path", default="./")
     parser.add_argument("--num_traj", type=int,  help="Number of Total Trajectories", default=10000)
     parser.add_argument("--iter", type=int,  help="Number of repeted iterations", default=20)
+    
+    parser.add_argument("--subit", type=int,  help="Max allowed number of subiterations")
+    parser.add_argument("--batch_size", type=int,  help="Batch Size")
+    parser.add_argument("--mini_batch_size", type=int,  help="Mini Batch Size")
+    parser.add_argument("--flr", type=float,  help="First Learning rate")
+    parser.add_argument("--lr", type=float,  help="Learning rate")
+    parser.add_argument("--mlr", type=float,  help="this is magnitude of update by self.optimizer_sub")
+    parser.add_argument("--prob", type=float,  help="Probability")
+
     parser.add_argument("--plot", action="store_true",
                     help="Plot the given estimator")
     parser.add_argument("--use_cuda", action="store_true",
                     help="Use CUDA")
+    
     args = parser.parse_args()
+    
+    default_hyper_parameters = {
+            "subit": 3,
+            "batch_size": 25,
+            "mini_batch_size": 5,
+            "flr": 1e-5,
+            "lr": 1e-5,
+            "mlr": 1e-5,
+            "prob":1
+        }
 
+    configured_hyper_parameters = {
+        "subit": args.subit,
+        "batch_size": args.batch_size,
+        "mini_batch_size": args.mini_batch_size,
+        "flr": args.flr,
+        "lr": args.lr,
+        "mlr": args.mlr,
+        "prob": args.prob
+    }
+    configured_hyper_parameters = {k: v for k, v in configured_hyper_parameters.items() if v is not None}
+    
+
+    estimator_hyper_parameters  = {
+        "Reinforce": {"mini_batch_size":10, "lr": 1e-2 },
+        "Gpomdp": {"mini_batch_size":10, "lr": 1e-2 },
+        "SarahPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 1e-2},
+        "PageStormPg": {},
+        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 1e-2},
+        "StormPg": {"batch_size": 10, "mini_batch_size": 5, "lr": 1e-2},
+        "PagePg": { },
+        "Svrpg_auto": { },
+        "all": {}
+    }
+    
+    hyper_parameters = {**default_hyper_parameters, **estimator_hyper_parameters[args.estimator], **configured_hyper_parameters}
+    
+    print(hyper_parameters)
+    exit()
 
     if args.plot:
         environment.plot(estimators=args.estimator, game=args.game)
     else:
-        environment.train(estimator=args.estimator, game=args.game, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)
+        environment.train(estimator=args.estimator, game=args.game, args=args, hyper_parameters=hyper_parameters, number_of_runs=args.iter, number_of_sampled_trajectories=args.num_traj, output_path=args.output)
