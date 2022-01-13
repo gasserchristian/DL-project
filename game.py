@@ -3,10 +3,13 @@ Interface for games
 """
 
 from abc import abstractmethod, ABCMeta
+import torch
+import numpy as np
+import random
+import os
 import re
 
 parser = lambda x : re.sub(r'([.? \'!]+) *', r'-', x)
-
 
 class game(metaclass=ABCMeta):
 	def __init__(self):
@@ -19,7 +22,17 @@ class game(metaclass=ABCMeta):
 		pass
 
 
-	abstractmethod
+	def reset_seeds(self, seed=42):
+		torch.manual_seed(seed)
+		torch.cuda.manual_seed(seed)
+		torch.random.manual_seed(seed)
+		np.random.seed(seed)
+		random.seed(seed)
+		self.env.seed(seed)
+		self.env.action_space.seed(seed)
+
+
+
 	def sample(self, max_t, eval):
 		pass
 
