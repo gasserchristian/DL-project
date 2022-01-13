@@ -24,6 +24,9 @@ class PageStormPg(VrEstimator):
 
         if args["prob"] is None:
             self.prob = self.B / (self.N + self.B)  # switching probability
+        else:
+            self.prob = args["prob"]
+            
         self.p = 1  # sampled probability value: if 1, do full gradient calculation; if 0, do SARAH (initialize to 1)
         self.mu = None  # return of outer loop
         self.alpha = args["alpha"]
