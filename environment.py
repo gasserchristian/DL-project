@@ -155,23 +155,29 @@ class Environment:
             reg = re.search(r"__([0-9]+)__([0-9]+)_([0-9]+)_(((\w+):(.+)_)|((\w+):(.+)-))?", name)
             if reg == None:
                 print(f"Failed to parse prameters of {name}")
-                continue
-
-            captured = reg.groups()
-
-            trajectories = int(captured[0])
-            iters = int(captured[1])
-            batch = int(captured[2])
-
-            sweep_name = captured[5]
-            sweep_value = None
-            if sweep_name == None:
-                sweep_name = captured[8]
-                if sweep_name != None:
-                    sweep_value = float(captured[9])
+                trajectores = None
+                iters = None
+                batch = None
+                sweep_name = None
+                sweep_value = None
             else:
-                sweep_value = float(captured[6])
-            print(f"Parsed {name} with game {game} est {estimator} {iters}x{trajectories} batch:{batch} {sweep_name}: {sweep_value}")
+
+                captured = reg.groups()
+
+                trajectories = int(captured[0])
+                iters = int(captured[1])
+                batch = int(captured[2])
+
+                sweep_name = captured[5]
+                sweep_value = None
+                if sweep_name == None:
+                    sweep_name = captured[8]
+                    if sweep_name != None:
+                        sweep_value = float(captured[9])
+                else:
+                    sweep_value = float(captured[6])
+                print(f"Parsed {name} with game {game} est {estimator} {iters}x{trajectories} batch:{batch} {sweep_name}: {sweep_value}")
+            
             if game not in games:
                 games[game] = {}
             if estimator not in games[game]:
@@ -361,7 +367,7 @@ if __name__ == '__main__':
             "flr": 2e-2,
             "lr": 1e-2,
             "mlr": 1,
-            "prob":None,
+            "prob":0.7,
             "alpha":0.9
         }
 
