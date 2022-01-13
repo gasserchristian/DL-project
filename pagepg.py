@@ -50,7 +50,7 @@ class PagePg(VrEstimator):
 
         # self.mu is the main result of this method
         self.mu = {k: v / self.N for k, v in gradient_estimators.items()}  # average
-        self.network_update(self.mu, game, first_iteration=True)  # then we update current policy network
+        self.network_update(self.mu, game, first_iteration=False)  # then we update current policy network
 
     def sarah_inner_update(self, game):
         gradient_estimators = self.inner_loop_estimators(game)
