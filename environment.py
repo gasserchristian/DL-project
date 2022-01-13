@@ -190,7 +190,7 @@ class Environment:
         game = self.games[game]['instance']
         # estimator = self.estimators[estimator](game)
         game.reset()  # reset policy networks
-        result = game.generate_data(self.estimators[estimator],number_of_sampled_trajectories,number_of_runs,output_path)
+        result = game.generate_data(self.estimators[estimator],args,number_of_sampled_trajectories,number_of_runs,output_path)
 
 
 if __name__ == '__main__':

@@ -36,7 +36,7 @@ class game(metaclass=ABCMeta):
 	def sample(self, max_t, eval):
 		pass
 
-	def generate_data(self, estimator, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
+	def generate_data(self, estimator, args, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
@@ -44,7 +44,7 @@ class game(metaclass=ABCMeta):
 		results = []
 		for i in range(number_of_runs):
 			self.reset(i) # Each run has different seed, but same across estimators
-			estimator_instance = estimator(self)
+			estimator_instance = estimator(self,args)
 			# evaluations = []
 			while True:
 				estimator_instance.step(self) # performs one step of update for the selected estimator

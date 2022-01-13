@@ -4,9 +4,9 @@ import torch.optim as optim
 
 
 class Reinforce(Estimator):
-    def __init__(self, game, B=10):
-        self.optimizer = optim.Adam(game.policy.parameters(), lr=1e-2)
-        self.B = B  # batch size
+    def __init__(self, game, args):
+        self.optimizer = optim.Adam(game.policy.parameters(), lr=args.lr)
+        self.B = args.mini_batch_size # batch size
 
         # set sample policy to current policy
         game.sample_policy = game.policy
