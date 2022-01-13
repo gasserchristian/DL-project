@@ -1,8 +1,11 @@
 """
-Interface for games  
+Interface for games
 """
 
 from abc import abstractmethod, ABCMeta
+import re
+
+parser = lambda x : re.sub(r'([.? \'!]+) *', r'-', x)
 
 
 class game(metaclass=ABCMeta):
@@ -48,7 +51,9 @@ class game(metaclass=ABCMeta):
 		for i in range(len(results)):
 			results[i] = results[i][:minLength]
 		# store a numpy binary
-		name = 'data-v2--'+type(self).__name__+'_'+type(estimator_instance).__name__+'.npy'
+		name = +type(self).__name__+'_'+type(estimator_instance).__name__+'__'
+		name +=str(number_of_sampled_trajectories)+'__'
+		name +=str(number_of_runs)+str(estimator_instance.B)+'.npy'
 		file_path = os.path.join(root_path, name)
 		# store a numpy binary
 		np.save(file_path,np.array(results))
