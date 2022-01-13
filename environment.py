@@ -244,22 +244,22 @@ if __name__ == '__main__':
             "subit": 3,
             "batch_size": 25,
             "mini_batch_size": 5,
-            "flr": 1e-2,
+            "flr": 2e-2,
             "lr": 1e-2,
             "mlr": 1,
-            "prob":0.5,
+            "prob":None,
             "alpha":0.9
         }
 
     estimator_hyper_parameters  = {
-        "Reinforce": {"mini_batch_size":10, "lr": 1e-2 },
-        "Gpomdp": {"mini_batch_size":10, "lr": 1e-2 },
-        "SarahPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 1e-2},
-        "PageStormPg": {},
-        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 1e-2},
+        "Reinforce": {"mini_batch_size":10, "lr": 1e-2},
+        "Gpomdp": {"mini_batch_size":10, "lr": 1e-2},
+        "SarahPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 2.5e-2, "flr": 5e-2},
+        "PageStormPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 1e-2},
+        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
         "StormPg": {"batch_size": 10, "mini_batch_size": 5, "lr": 1e-2},
-        "PagePg": { },
-        "Svrpg_auto": { },
+        "PagePg": {"lr": 2.5e-2, "batch_size": 25, "mini_batch_size": 5, "flr": 5e-2 },
+        "Svrpg_auto": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
         "all": {}
     }
     
