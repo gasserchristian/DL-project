@@ -28,7 +28,7 @@ class mountain_car(game):
 
         self.gamma = 0.95
 
-        self.env = gym.make('MountainCar-v0')
+        self.env = gym.make('MountainCar-v0').unwrapped
         self.reset()
 
     def reset(self, seed=42):
@@ -49,10 +49,7 @@ class mountain_car(game):
         """
 
         # If in evaluation mode, random sample
-        if eval:
-            policy = self.sample_policy
-        else:
-            policy = self.policy
+        
         states = []
         actions = []
         saved_log_probs = []
@@ -61,21 +58,13 @@ class mountain_car(game):
         # Collect trajectory
         for t in range(max_t):
             states.append(state)
-            action, log_prob = policy.act(state)
+            action, log_prob = self.policy.act(state)
             actions.append(action)
             saved_log_probs.append(log_prob)
-        
-
-            next_state, reward, done, _ = self.env.step(action)
-
-            if next_state[0] - state[0] > 0 and action == 2:
-                reward = 1
-            if next_state[0] - state[0] < 0 and action == 0:
-                reward = 1
-            state = next_state.copy()
-
+            state, reward, done, _ = self.env.step(action)
             rewards.append(reward) # or after break? reward of terminal state?
             if done:
+                print(f"DONE {t}")
                 break
         trajectory = {'states': states, 'actions': actions,
                         'probs': saved_log_probs, 'rewards': rewards}

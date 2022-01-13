@@ -65,12 +65,13 @@ class pendulum(game):
             actions.append(action)
             saved_log_probs.append(log_prob)
             next_state, reward, done, _ = self.env.step(action)
+            reward = reward.numpy()[0]
 
             state = next_state.copy()
-
+            # self.env.render()
             rewards.append(reward) # or after break? reward of terminal state?
             if done:
-                # print(f"Done {t}", rewards, actions)
+                print(f"Done {t}")
 
                 break
         trajectory = {'states': states, 'actions': actions,

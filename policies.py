@@ -74,7 +74,7 @@ class GaussianPolicy(nn.Module):
 
         # print(action)
         sample = dist.sample()
-        sample = torch.clip(sample, -1, 1)
+        # sample = torch.clip(sample, -1, 1)
         log_prob = dist.log_prob(sample)
 
         return sample, log_prob

@@ -30,9 +30,9 @@ class lunar_lander(game):
         self.reset_seeds(seed)
 
 
-        self.snapshot_policy = Basic_Policy(state_size=8, action_size=2, hidden_size=16) # policy "snapshot" network used by some algorithms
-        self.policy = Basic_Policy(state_size=8, action_size=2, hidden_size=16) # policy network parameters
-        self.sample_policy = Basic_Policy(state_size=8, action_size=2, hidden_size=16) # sample policy used during evaluation
+        self.snapshot_policy = Basic_Policy(state_size=8, action_size=2, hidden_size=32) # policy "snapshot" network used by some algorithms
+        self.policy = Basic_Policy(state_size=8, action_size=2, hidden_size=32) # policy network parameters
+        self.sample_policy = Basic_Policy(state_size=8, action_size=2, hidden_size=32) # sample policy used during evaluation
 
   
     def sample(self, max_t = 1000, eval = 0):
@@ -63,6 +63,7 @@ class lunar_lander(game):
             state, reward, done, _ = self.env.step(action)
             rewards.append(reward) # or after break? reward of terminal state?
             if done:
+                print(f"DONE {t} {reward}")
                 break
         trajectory = {'states': states, 'actions': actions,
                         'probs': saved_log_probs, 'rewards': rewards}
