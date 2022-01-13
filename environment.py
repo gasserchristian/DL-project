@@ -213,24 +213,32 @@ class Environment:
 
             title = f"Trajectory score of {game_name} environment"
 
-            fig, ax = plt.subplots(figsize=(10, 5))
+            fig, ax = plt.subplots(figsize=(8, 6))
             ax.set_title(title)
             ax.set_xlabel("trajectories")
             ax.set_ylabel("reward")
             for estimator_name, estimator in estimators.items():
                 for run in estimator:
                     item = run['statistics']
-                    label = estimator_name + run['extra_name']
-                    plt.plot(item[0], item[1], label=label)
+                    item[0] *= interval
+                    
+                    cut = -1
+                    x = item[0][:cut]
+                    y = item[1][:cut]
+                    std =item[2][:cut]
+                    print(len(x))
+                    label = estimator_name 
+                    plt.plot(x, y, label=label)
                     plt.fill_between(
-                        item[0],
-                        np.maximum(item[1] - item[2],0),
-                        np.minimum(item[1] + item[2],maxReward),
+                        x,
+                        y - std,
+                        np.minimum(y + std,maxReward),
                         alpha=0.2
                     )
-            fig.legend(frameon=False, loc='upper center', ncol=len(data))
+            ax.legend(frameon=True, loc='best', ncol=len(data))
+            plt.tight_layout()
             plt.grid()
-            plt.savefig(title + '.svg')
+            plt.savefig(title + '.eps')
             plt.show()
 
 
