@@ -212,7 +212,7 @@ if __name__ == '__main__':
         {'slug': 'cart_pole', 'plotTitle': 'Cart pole', 'instance': cart_pole()},
         {'slug': 'lunar_lander', 'plotTitle': 'Lunar Lander', 'instance': lunar_lander()},
         {'slug': 'continuous_mountain_car', 'plotTitle': 'Continuous mountian car', 'instance': continuous_mountain_car()},
-        {'slug': 'mountain_car', 'plotTitle': ' Mountian car', 'instance': mountain_car()}
+        {'slug': 'mountain_car', 'plotTitle': ' Mountian car', 'instance': mountain_car()},
         {'slug': 'pendulum', 'plotTitle': 'Pendulum', 'instance': pendulum()}
     ])
 

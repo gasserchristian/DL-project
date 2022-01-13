@@ -26,7 +26,7 @@ store_every=10
 
 class pendulum(game):
     def __init__(self):
-        super(continuous_mountain_car, self).__init__()
+        super(pendulum, self).__init__()
 
         self.gamma = 0.98
         self.env = gym.make('Pendulum-v1')
