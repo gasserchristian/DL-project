@@ -25,6 +25,9 @@ Overleaf link: [https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec](https
 # Running the code
 
 ```bash
+# Install the requirements
+pip install -r requirements.txt
+
 
 # Run the given estimator on a game with custom parameters for 1000 trajectories and 20 repetitions
 python main.py --game lunar_lander --estimator PagePg --prob 0.3 --iter 20 --num_traj 1000 --output ./runs
