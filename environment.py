@@ -213,11 +213,23 @@ class Environment:
 
             title = f"Trajectory score of {game_name} environment"
 
+            
+
             fig, ax = plt.subplots(figsize=(8, 6))
             ax.set_title(title)
             ax.set_xlabel("trajectories")
             ax.set_ylabel("reward")
             for estimator_name, estimator in estimators.items():
+
+         
+                if estimator_name in ["PagePg", "PageStormPg"]:
+                    alpha=1.0
+                    linewidth=2.5
+
+                else:
+                    alpha=0.5
+                    linewidth=1
+
                 for run in estimator:
                     item = run['statistics']
                     item[0] *= interval
@@ -228,17 +240,18 @@ class Environment:
                     std =item[2][:cut]
                     print(len(x))
                     label = estimator_name 
-                    plt.plot(x, y, label=label)
+                    plt.plot(x, y, label=label, alpha=alpha, linewidth=linewidth)
                     plt.fill_between(
                         x,
                         y - std,
                         np.minimum(y + std,maxReward),
-                        alpha=0.2
+                        alpha=0.2*alpha
                     )
             ax.legend(frameon=True, loc='best', ncol=len(data))
             plt.tight_layout()
             plt.grid()
-            plt.savefig(title + '.eps')
+            plt.savefig(title + '.svg')
+            plt.savefig(title + '.png')
             plt.show()
 
 
@@ -291,15 +304,24 @@ class Environment:
         ax.set_title(game['plotTitle'])
         ax.set_xlabel("trajectories")
         ax.set_ylabel("reward")
+
+
+
         for i, value in enumerate(data):
             item = value['content']
             label = value['slug']
-            plt.plot(item[0], item[1], label=label)
+            print(label)
+            if label in ["PagePg", "PageStormPg"]:
+                alpha=1
+                print(label, 'string')
+            else:
+                alpha=0.6
+            plt.plot(item[0], item[1], label=label, alpha=alpha)
             plt.fill_between(
                 item[0],
                 np.maximum(item[1] - item[2],0),
                 np.minimum(item[1] + item[2],maxReward),
-                alpha=0.2
+                alpha=0.2*alpha
             )
         fig.legend(frameon=False, loc='upper center', ncol=len(data))
         plt.grid()
@@ -383,7 +405,7 @@ if __name__ == '__main__':
         "Reinforce": {"mini_batch_size":10, "lr": 1e-2},
         "Gpomdp": {"mini_batch_size":10, "lr": 1e-2},
         "SarahPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 2.5e-2, "flr": 5e-2},
-        "PageStormPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 1e-2},
+        "PageStormPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 2e-2},
         "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
         "StormPg": {"batch_size": 10, "mini_batch_size": 5, "lr": 1e-2},
         "PagePg": {"lr": 2.5e-2, "batch_size": 25, "mini_batch_size": 5, "flr": 5e-2 },
