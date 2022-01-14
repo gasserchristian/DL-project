@@ -367,8 +367,8 @@ if __name__ == '__main__':
     parser.add_argument("--game", type=str, choices=list(environment.games.keys()), help="Game to be tested", default="cart_pole")
     parser.add_argument("--estimator", type=str, choices=list(environment.estimators.keys()) + ["all"], help="Estimator to be used", default="Gpomdp")
     parser.add_argument("--output", type=str, help="Output directory path", default="./")
-    parser.add_argument("--num_traj", type=int,  help="Number of Total Trajectories", default=10000)
-    parser.add_argument("--iter", type=int,  help="Number of repeted iterations", default=20)
+    parser.add_argument("--num_traj", type=int,  help="Number of Total Trajectories", default=500)
+    parser.add_argument("--iter", type=int,  help="Number of repeted iterations", default=10)
 
     parser.add_argument("--subit", type=int,  help="Max allowed number of subiterations")
     parser.add_argument("--batch_size", type=int,  help="Batch Size")
@@ -392,24 +392,24 @@ if __name__ == '__main__':
 
     default_hyper_parameters = {
             "subit": 3,
-            "batch_size": 25,
-            "mini_batch_size": 5,
-            "flr": 2e-2,
-            "lr": 1e-2,
+            "batch_size": 5,
+            "mini_batch_size": 3,
+            "flr": 6e-3,
+            "lr": 3e-3,
             "mlr": 1,
-            "prob":0.7,
+            "prob":0.9,
             "alpha":0.9
         }
 
     estimator_hyper_parameters  = {
-        "Reinforce": {"mini_batch_size":10, "lr": 1e-2},
-        "Gpomdp": {"mini_batch_size":10, "lr": 1e-2},
-        "SarahPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 2.5e-2, "flr": 5e-2},
-        "PageStormPg": {"batch_size": 25, "mini_batch_size": 5, "lr": 2e-2},
-        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
-        "StormPg": {"batch_size": 10, "mini_batch_size": 5, "lr": 1e-2},
-        "PagePg": {"lr": 2.5e-2, "batch_size": 25, "mini_batch_size": 5, "flr": 5e-2 },
-        "Svrpg_auto": {"batch_size": 100, "mini_batch_size": 10, "lr": 2.5e-2, "flr": 5e-2},
+        "Reinforce": {"mini_batch_size":10, "lr": 3e-3},
+        "Gpomdp": {"mini_batch_size":5, "lr": 3e-3},
+        "SarahPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3, "flr": 6e-3},
+        "PageStormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
+        "Svrpg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3, "flr": 6e-3},
+        "StormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
+        "PagePg": {"lr": 2.5e-2, "batch_size": 5, "mini_batch_size": 3, "flr": 6e-3},
+        "Svrpg_auto": {"batch_size": 100, "mini_batch_size": 10, "lr": 3e-3, "flr": 6e-3},
         "all": {}
     }
 
