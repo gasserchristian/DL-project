@@ -35,13 +35,13 @@ class StormPg(VrEstimator):
         self.sample_policy_update(game)
 
     def full_grad_update(self, game):
-        self.snapshot_update(game)  # update snapshot with weights of current NN
+        #self.snapshot_update(game)  # update snapshot with weights of current NN
         gradient_estimators = self.outer_loop_estimators(
             game)  # then we sample a batch of trajectories and compute GPOMDP gradient estimators
 
         # self.mu is the main result of this method
         self.mu = {k: v / self.N for k, v in gradient_estimators.items()}  # average
-        self.network_update(self.mu, game, first_iteration=False)  # then we update current policy network]
+        self.network_update(self.mu, game, first_iteration=True)  # then we update current policy network]
         self.mu = {k: (1 - self.alpha) * v / self.N for k, v in gradient_estimators.items()}  # average and scale
 
     def inner_loop_update(self, game):
@@ -53,7 +53,7 @@ class StormPg(VrEstimator):
         self.mu = {k: (1-self.alpha) * item for k, item in v.items()}
 
         # Update snapshot
-        self.snapshot_update(game)
+        #self.snapshot_update(game)
 
         # Update network
         self.network_update(v, game, first_iteration=False)  # updates network in remaining iterations

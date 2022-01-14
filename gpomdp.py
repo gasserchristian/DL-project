@@ -3,9 +3,9 @@ import torch
 import torch.optim as optim
 import statistics
 import numpy as np
+from lunar_lander import lunar_lander
 
 
-# average of rewards-to-go serves as baseline
 class Gpomdp(Estimator):
     def __init__(self, game, args):
         # default lr = 5e-2
@@ -37,8 +37,9 @@ class Gpomdp(Estimator):
 
     def gpomdp_gradient_estimate(self, trajectory, game):
         """
-        computes GPOMDP gradient estimate using given trajectory
+        computes GPOMDP gradient estimate using some trajectory
         """
+    
         policy_network = game.policy
         gamma = game.gamma  # discount factor
 
@@ -47,6 +48,16 @@ class Gpomdp(Estimator):
         log_probs = trajectory['probs']
         rewards = trajectory['rewards']
 
+
+        if isinstance(game, lunar_lander): # lunar_game is special 
+            policy_loss = log_probs*rewards  
+            policy_loss = policy_loss.sum()
+            policy_network.zero_grad()
+            policy_loss.backward()
+            grad_dict = {k: v.grad for k, v in policy_network.named_parameters()}  # one alternative way to compute gradient
+            return grad_dict  # returns dictionary!
+
+
         def rewards_to_go(rewards):
             rewards_to_go = []
             for i in range(len(rewards) + 1):
@@ -54,6 +65,7 @@ class Gpomdp(Estimator):
                 reward_to_go = sum([a * b for a, b in zip(discounts, rewards[i::])])
                 rewards_to_go.append(reward_to_go)
             return rewards_to_go
+
 
         rewards_to_go = rewards_to_go(rewards)
         mean_over_returns = statistics.mean(rewards_to_go)
@@ -77,3 +89,5 @@ class Gpomdp(Estimator):
                      policy_network.named_parameters()}  # one alternative way to compute gradient
 
         return grad_dict  # returns dictionary!
+
+

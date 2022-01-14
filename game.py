@@ -29,14 +29,16 @@ class game(metaclass=ABCMeta):
 		np.random.seed(seed)
 		random.seed(seed)
 		self.env.seed(seed)
-		self.env.action_space.seed(seed)
+
+		if hasattr(self.env, 'action_space'):
+			self.env.action_space.seed(seed)
 
 
 
 	def sample(self, max_t, eval):
 		pass
 
-	def generate_data(self, estimator, hyper_parameters, sweep_parameter, number_of_sampled_trajectories = 10000, number_of_runs = 30, root_path="./"):
+	def generate_data(self, estimator, hyper_parameters, sweep_parameter, number_of_sampled_trajectories = 10, number_of_runs = 1, root_path="./"):
 		"""
 		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
 		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")

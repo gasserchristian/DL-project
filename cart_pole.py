@@ -73,10 +73,14 @@ class cart_pole(game):
 		trajectory = {'states': states, 'actions': actions,
 						'probs': saved_log_probs, 'rewards': rewards}
 
+		total_return = sum(rewards)
+        
 		if self.number_of_sampled_trajectories % print_every == 0:
-			print(sum(rewards))
+			print(f"total return {total_return}", f"of {self.number_of_sampled_trajectories} trajectory")
+			
 		if self.number_of_sampled_trajectories % store_every == 0:
-			self.rewards_buffer.append(sum(rewards))
+			self.rewards_buffer.append(total_return)
+		
 		self.number_of_sampled_trajectories += 1
 		return trajectory
 

@@ -3,6 +3,7 @@ import statistics
 import torch
 from abc import abstractmethod, ABCMeta
 import numpy as np
+from lunar_lander import lunar_lander
 
 class Estimator(metaclass=ABCMeta):
 
@@ -37,6 +38,18 @@ class VrEstimator(Estimator):
         rewards = trajectory['rewards']
         states = trajectory['states']
         actions = trajectory['actions']
+
+        if isinstance(game, lunar_lander): # lunar_game is special 
+            if snapshot:  # then we need to recompute logprobs using snapshot network
+                log_probs = policy_network.forward(states,actions)[1] # compute log probs using snapshot network
+    
+            policy_loss = log_probs*rewards  
+            policy_loss = policy_loss.sum()
+            policy_network.zero_grad()
+            policy_loss.backward()
+            grad_dict = {k: v.grad for k, v in policy_network.named_parameters()}  # one alternative way to compute gradient
+            return grad_dict  # returns dictionary!
+    
 
         k = 0
 
@@ -159,6 +172,14 @@ class VrEstimator(Estimator):
 
         k = 0
 
+        if isinstance(game, lunar_lander): # lunar_game is special 
+            log_prob_current = game.policy.forward(states,actions)[1] # compute log probs using snapshot network
+            log_prob_snapshot = game.snapshot_policy.forward(states,actions)[1] # compute log probs using snapshot network
+            with torch.no_grad():  # we don't want to track gradient history of weights
+                weight = log_prob_snapshot.sum() / log_prob_current.sum()
+            return weight
+
+
         while True:
             state = states[k]
             action = actions[k]
@@ -271,7 +292,7 @@ class VrEstimator(Estimator):
                 continue
             gradient_estimators = self.sum_dictionaries(gradient_estimators, summ)
 
-            return gradient_estimators
+        return gradient_estimators
 
     def calculate_lr(self, old_dict, new_dict, first_iteration):
         """

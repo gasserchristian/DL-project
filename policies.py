@@ -43,6 +43,60 @@ class Basic_Policy(nn.Module):
 		return log_prob
 
 
+def mlp(sizes, activation, output_activation=nn.Identity):
+    """The basic multilayer perceptron architecture used."""
+    layers = []
+    for j in range(len(sizes)-1):
+        act = activation if j < len(sizes)-2 else output_activation
+        layers += [nn.Linear(sizes[j], sizes[j+1]), act()]
+    return nn.Sequential(*layers)
+
+
+class Lunar_Policy(nn.Module):
+	"""Policy network for Lunar Lander game"""
+
+	def __init__(self, obs_dim=8, act_dim=4, hidden_sizes =(64,64), activation=nn.Tanh):
+		super().__init__()  
+		self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
+
+	def _distribution(self, obs):
+		"""Takes the observation and outputs a distribution over actions."""
+		logits = self.logits_net(obs)
+		return Categorical(logits=logits)
+
+	def _log_prob_from_distribution(self, pi, act):
+		"""
+		Takes a distribution and action, then gives the log-probability of the action
+		under that distribution.
+		"""
+		return pi.log_prob(act)
+
+	def forward(self, obs, act=None):
+		"""
+		Produce action distributions for given observations, and then compute the
+		log-likelihood of given actions under those distributions.
+		"""
+		pi = self._distribution(obs)
+		logp_a = None
+		if act is not None:
+			logp_a = self._log_prob_from_distribution(pi, act)
+		return pi, logp_a
+	
+	def step(self, state):
+		"""
+		Take a state and return an action, and log-likelihood of chosen action.
+		"""
+		with torch.no_grad():
+			action = self.forward(state)[0].sample() 
+			log_prob_action = self.forward(state, action)[1]
+
+		# convert tensors to numerical values 
+		action = action.detach().numpy()  
+		log_prob_action = log_prob_action.detach().numpy()
+
+		return action, log_prob_action
+
+
 
 class GaussianPolicy(nn.Module):
     def __init__(self,
