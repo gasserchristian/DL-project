@@ -171,9 +171,9 @@ class Environment:
                 if sweep_name == None:
                     sweep_name = captured[8]
                     if sweep_name != None:
-                        sweep_value = float(captured[9])
+                        sweep_value = captured[9]
                 else:
-                    sweep_value = float(captured[6])
+                    sweep_value = captured[6]
                 print(f"Parsed {name} with game {game} est {estimator} {iters}x{trajectories} batch:{batch} {sweep_name}: {sweep_value}")
             
             if game not in games:
