@@ -20,7 +20,7 @@ from PG_Buffer import PG_Buffer # import policy buffer
 
 
 print_every = 10 # print every 100th trajectory  
-store_every = 10 # every trajectory is stored in the file 
+store_every = 1 # every trajectory is stored in the file 
 
 
 class cart_pole(game):

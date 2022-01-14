@@ -107,7 +107,7 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def plot_by_file(self, files, interval=1):
+    def plot_by_file(self, files, interval=5):
         games = {}
         for f in files:
             name = f.name
@@ -206,7 +206,7 @@ class Environment:
         for game_name, estimators in games.items():
 
             title = f"Trajectory score of {game_name} environment"
-            if game_name == "lunar_lander":
+            if game_name in ["lunar_lander", "cart_pole"]:
                 factor = 0.1
             else:
                 factor= 1
@@ -229,7 +229,7 @@ class Environment:
                 ax = plt.gca()
                 for run in estimator:
                     item = run['statistics']
-                    item[0] *= factor
+                    item[0] *= factor * interval
                     
                     cut = -1
                     x = item[0][:cut]
@@ -238,19 +238,21 @@ class Environment:
                     label = estimator_name #+ run['file_name']
                     color=next(ax._get_lines.prop_cycler)['color']
                     plt.plot(x, y, label=label, alpha=alpha, linewidth=linewidth, color=color)
-                    if game_name != "lunar_lander":
-                        plt.scatter(x, y, s=100, alpha=alpha*0.8, edgecolor=color, facecolor="none")
+                    # if game_name != "lunar_lander":
+                    plt.scatter(x, y, s=75, alpha=alpha*0.8, edgecolor=color, facecolor="none")
                     plt.fill_between(
                         x,
                         y - std,
-                        np.minimum(y + std,maxReward),
+                        y + std,
                         alpha=0.2*alpha
                     )
             ax.legend(frameon=True, loc='best')
             plt.tight_layout()
             plt.grid()
-            plt.savefig(title + '.svg')
-            plt.savefig(title + '.png')
+
+            plot_name = f"{game_name}_{item[0][-1] * factor * interval}"
+            plt.savefig(plot_name + '.svg')
+            plt.savefig(plot_name + '.png')
             plt.show()
 
 

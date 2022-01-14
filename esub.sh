@@ -29,7 +29,7 @@ for game in cart_pole lunar_lander; do
             
         output=$(printf "%s_%s_bs:%s_mbs:%s_alpha:%s_lr:%s_prob:%s.txt" $game $estimator $batch_size $mini_batch_size $alpha $lr $prob)
         echo $output
-        bsub -W 24:00 -n 1 -R "rusage[mem=4096]" -J "$game" -oo $OUTPUT_DIR/$output python environment.py --game $game --estimator $estimator --output $OUTPUT_DIR --iter $ITERATIONS --num_traj $TRAJECTORIES
+        bsub -W 24:00 -n 1 -R "rusage[mem=4096]" -J "$game" -oo $OUTPUT_DIR/$output python main.py --game $game --estimator $estimator --output $OUTPUT_DIR --iter $ITERATIONS --num_traj $TRAJECTORIES
 
     done
 done
