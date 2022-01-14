@@ -1,6 +1,7 @@
 from torch import optim
 
 from estimator import VrEstimator
+from adam import adam # our own adam optimizer
 
 """
 Check the following (need thorough evaluation to verify the benefit)
@@ -28,11 +29,14 @@ class Svrpg(VrEstimator):
 
         self.mu = None  # return of outer loop (mean gradient calculated using N samples)
 
+        #self.optimizer_first = adam(alpha = 0.003) # adam for first subiteration update 
+        #self.optimizer_sub = adam(alpha = 0.003) # adam for remaining subiteration updates 
+
         self.optimizer_first = optim.Adam(game.policy.parameters(), lr=args["flr"])
         self.optimizer_sub = optim.Adam(game.policy.parameters(), lr=args["lr"])
 
         self.first_iteration_lr = 1  # this is magnitude of update by self.optimizer_first
-        self.main_lr = args["mlr"]  # this is magnitude of update by self.optimizer_sub
+        self.main_lr = 1  # this is magnitude of update by self.optimizer_sub
         self.policy_parameter_list = []
 
     def step(self, game):
@@ -48,12 +52,14 @@ class Svrpg(VrEstimator):
         self.inner_loop_update(game)  # inner loop update of SVRPG algprithm
         self.t += 1
 
+        
         if (self.first_iteration_lr / self.N) > (self.main_lr / self.B):
-            """
-			Whenever this is true, we finish subiterations and take snapshot 
-			We need to verify that this indeed helps 
-			"""
+            
+			#Whenever this is true, we finish subiterations and take snapshot 
+			#We need to verify that this indeed helps 
+			
             self.t = self.m
+        
 
 
     def outer_loop_update(self, game):
