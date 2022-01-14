@@ -93,8 +93,8 @@ class cart_pole(game):
 
 		trajectory = {'states': obs, 'actions': act, 'probs': log_p, 'rewards': ret} # store trajectory as a dictionary  
 
-		if self.number_of_sampled_trajectories % print_every == 0:
-			print(f"mean return {mean_return}", f"of {self.number_of_sampled_trajectories} trajectory")
+		# if self.number_of_sampled_trajectories % print_every == 0:
+		# 	print(f"mean return {mean_return}", f"of {self.number_of_sampled_trajectories} trajectory")
 
 		if self.number_of_sampled_trajectories % store_every == 0:
 			self.rewards_buffer.append(mean_return) # this buffer is used for writing files after training 

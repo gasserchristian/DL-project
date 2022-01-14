@@ -9,6 +9,8 @@ import random
 import os
 import re
 
+import tqdm
+
 parser = lambda x : re.sub(r'([.? \'!]+) *', r'-', x)
 
 class game(metaclass=ABCMeta):
@@ -49,16 +51,25 @@ class game(metaclass=ABCMeta):
 		for i in range(number_of_runs):
 			self.reset(i) # Each run has different seed, but same across estimators
 			estimator_instance = estimator(self, hyper_parameters)
+			
+			pbar = tqdm.tqdm(total=number_of_sampled_trajectories)
+			
+			last = 0
 			while True:
 				estimator_instance.step(self) # performs one step of update for the selected estimator
 									   # this can be one or more episodes
-
+				
+				pbar.set_description(f"Current reward {self.rewards_buffer[-1]:.2f}")
+				pbar.update(self.number_of_sampled_trajectories - last)
+				last = self.number_of_sampled_trajectories
 				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
 					print(f'finish run {i+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
 					self.number_of_sampled_trajectories = 0
 					results.append(self.rewards_buffer)
 					self.rewards_buffer = []
 					break
+
+			pbar.close()
 
 		name = f"{type(self).__name__}_{type(estimator_instance).__name__}__{str(number_of_sampled_trajectories)}__{str(number_of_runs)}_{str(estimator_instance.B)}_{sweep_parameter}"
 		minLength = np.min([len(item) for item in results])

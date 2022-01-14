@@ -27,16 +27,16 @@ Overleaf link: [https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec](https
 ```bash
 
 # Run the given estimator on a game with custom parameters for 1000 trajectories and 20 repetitions
-python environment.py --game lunar_lander --estimator PagePg --prob 0.3 --iter 20 --num_traj 1000 --output ./runs
+python main.py --game lunar_lander --estimator PagePg --prob 0.3 --iter 20 --num_traj 1000 --output ./runs
 
 # Plot a given run file
-python environment.py --plot_files ./runs/run1.npy
+python main.py --plot_files ./runs/run1.npy
 
 
 
 # See this for more details
-python environment.py -h
-usage: environment.py [-h] [--game {cart_pole,lunar_lander,continuous_mountain_car,mountain_car,pendulum}] [--estimator {Reinforce,Gpomdp,SarahPg,PageStormPg,Svrpg,StormPg,PagePg,all}]
+python main.py -h
+usage: main.py [-h] [--game {cart_pole,lunar_lander,continuous_mountain_car,mountain_car,pendulum}] [--estimator {Reinforce,Gpomdp,SarahPg,PageStormPg,Svrpg,StormPg,PagePg,all}]
                       [--output OUTPUT] [--num_traj NUM_TRAJ] [--iter ITER] [--subit SUBIT] [--batch_size BATCH_SIZE] [--mini_batch_size MINI_BATCH_SIZE] [--flr FLR] [--lr LR] [--mlr MLR]
                       [--prob PROB] [--alpha ALPHA] [--plot_files PLOT_FILES [PLOT_FILES ...]] [--plot] [--use_cuda]
 

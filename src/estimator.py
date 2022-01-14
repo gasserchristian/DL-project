@@ -26,6 +26,9 @@ class Estimator(metaclass=ABCMeta):
         """
         pass
 
+    def __str__(self):
+        return self.__name__
+
 
 # A common variance-reduced estimator class
 class VrEstimator(Estimator):
