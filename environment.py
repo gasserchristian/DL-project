@@ -122,7 +122,7 @@ class Environment:
         plt.savefig(game['plotTitle'] + '.svg')
         plt.show()
 
-    def plot_by_file(self, files, interval=5):
+    def plot_by_file(self, files, interval=1):
         games = {}
         for f in files:
             name = f.name
@@ -190,6 +190,16 @@ class Environment:
             std = best.std(axis=0)
             statistics = np.array([np.arange(len(mean))*10,mean,std])
 
+            # if np.any(statistics[1,-40:] < 100) or np.any(statistics[1,-10:] < 125):
+            #     print(f"Best score not met {statistics[1,-1:]}")
+            #     continue
+
+            # if estimator == "PagePg":
+            #     if np.any(statistics[1,-45:] < 100) or not "alpha:0.7" in name or np.any(statistics[1,-20:] < 125) :
+            #         continue
+
+            
+
             if sweep_name != None:
                 extra_name = f"_{sweep_name}:{sweep_value}"
             else:
@@ -197,7 +207,8 @@ class Environment:
             data = {
                 "raw_data": raw_data,
                 'statistics': statistics,
-                'extra_name': extra_name
+                'extra_name': extra_name,
+                'file_name': name[10:]
 
             }
 
@@ -210,16 +221,19 @@ class Environment:
         for game_name, estimators in games.items():
 
             title = f"Trajectory score of {game_name} environment"
-
+            if game_name == "lunar_lander":
+                factor = 0.1
+            else:
+                factor= 1
             
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            ax.set_title(title)
-            ax.set_xlabel("trajectories")
-            ax.set_ylabel("reward")
+            # ax.set_title(title)
+            ax.set_xlabel("Number of Trajectories")
+            ax.set_ylabel("Total Reward")
             for estimator_name, estimator in estimators.items():
 
-         
+                
                 if estimator_name in ["PagePg", "PageStormPg"]:
                     alpha=1.0
                     linewidth=2.5
@@ -227,25 +241,27 @@ class Environment:
                 else:
                     alpha=0.5
                     linewidth=1
-
+                ax = plt.gca()
                 for run in estimator:
                     item = run['statistics']
-                    item[0] *= interval
+                    item[0] *= factor
                     
                     cut = -1
                     x = item[0][:cut]
                     y = item[1][:cut]
                     std =item[2][:cut]
-                    print(len(x))
-                    label = estimator_name 
-                    plt.plot(x, y, label=label, alpha=alpha, linewidth=linewidth)
+                    label = estimator_name #+ run['file_name']
+                    color=next(ax._get_lines.prop_cycler)['color']
+                    plt.plot(x, y, label=label, alpha=alpha, linewidth=linewidth, color=color)
+                    if game_name != "lunar_lander":
+                        plt.scatter(x, y, s=100, alpha=alpha*0.8, edgecolor=color, facecolor="none")
                     plt.fill_between(
                         x,
                         y - std,
                         np.minimum(y + std,maxReward),
                         alpha=0.2*alpha
                     )
-            ax.legend(frameon=True, loc='best', ncol=len(data))
+            ax.legend(frameon=True, loc='best')
             plt.tight_layout()
             plt.grid()
             plt.savefig(title + '.svg')
@@ -406,7 +422,7 @@ if __name__ == '__main__':
         "PageStormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
         "StormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
         "PagePg": {"lr": 2.5e-2, "batch_size": 5, "mini_batch_size": 3, "flr": 6e-3},
-        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 3e-3, "flr": 6e-3},
+        "Svrpg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3, "flr": 6e-3},
         "all": {}
     }
 
