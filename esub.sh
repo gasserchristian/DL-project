@@ -7,14 +7,36 @@ OUTPUT_DIR=$(printf "%s/%s/%s" $SCRATCH "DL" $DATE)
 mkdir -p $OUTPUT_DIR
 
 
-ITERATIONS=50
-TRAJECTORIES=5000
+ITERATIONS=5
+TRAJECTORIES=500
 
+# for game in lunar_lander cart_pole; do
+#     for estimator in Reinforce Gpomdp SarahPg Svrpg StormPg PagePg Svrpg_auto PageStormPg PagePg; do
+            
+#         output=$(printf "%s_%s_:output.txt" $game $estimator)
 
+#         echo $output
+#         bsub -W 24:00 -n 1 -R "rusage[mem=4096]" -J "$game" -oo $OUTPUT_DIR/$output python environment.py --game $game --estimator $estimator --output $OUTPUT_DIR --iter $ITERATIONS --num_traj $TRAJECTORIES
+    
+#     done
+# done
 # # bsub -W 24:00 -n 2 -R "rusage[mem=4096]" -J "cart_gpomdp" -oo $OUTPUT_DIR/$output python environment.py --game $game --estimator $estimator --output $OUTPUT_DIR --iter $ITERATIONS --num_traj $TRAJECTORIES
 
-# for game in cart_pole; do
-#     for estimator in  StormPg PagePg PageStormPg; do
+for game in cart_pole lunar_lander; do
+
+
+    for estimator in  Gpomdp SarahPg Svrpg StormPg PagePg PageStormPg; do
+            
+        output=$(printf "%s_%s_bs:%s_mbs:%s_alpha:%s_lr:%s_prob:%s.txt" $game $estimator $batch_size $mini_batch_size $alpha $lr $prob)
+        echo $output
+        bsub -W 24:00 -n 1 -R "rusage[mem=4096]" -J "$game" -oo $OUTPUT_DIR/$output python environment.py --game $game --estimator $estimator --output $OUTPUT_DIR --iter $ITERATIONS --num_traj $TRAJECTORIES
+
+    done
+done
+
+
+# for game in lunar_lander; do
+#     for estimator in  Gpomdp SarahPg Svrpg StormPg PagePg PageStormPg; do
 #             for batch_size in 10 25 100; do
 #                 for mini_batch_size in 5 10; do
 #                     for alpha in 0.7 0.75 0.8 0.85 0.9 0.95; do
@@ -29,11 +51,7 @@ TRAJECTORIES=5000
 #                         done
 #                     done
 #                 done
-#             done
-            
-            
-
-        
+#             done    
 #     done
 # done
 
