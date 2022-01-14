@@ -66,8 +66,8 @@ class game(metaclass=ABCMeta):
 			results[i] = results[i][:minLength]
 		# store a numpy binary
 
-		name +=parser(str(self.gamma))+'.npy'
+		name += '.npy'
 		file_path = os.path.join(root_path, name)
 		# store a numpy binary
-		np.save(file_path,np.array(results))
+		np.save(file_path, np.array(results))
 
