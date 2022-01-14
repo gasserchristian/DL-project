@@ -22,6 +22,53 @@ Brainstorming doc : https://docs.google.com/document/d/1ORe8bYeyK1qdgkFnvwzRyqKi
 Overleaf link: [https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec](https://www.overleaf.com/project/61b07a2d5c52e4b1697888ec)
 
 
+# Running the code
+
+```bash
+
+# Run the given estimator on a game with custom parameters for 1000 trajectories and 20 repetitions
+python environment.py --game lunar_lander --estimator PagePg --prob 0.3 --iter 20 --num_traj 1000 --output ./runs
+
+# Plot a given run file
+python environment.py --plot_files ./runs/run1.npy
+
+
+
+# See this for more details
+python environment.py -h
+usage: environment.py [-h] [--game {cart_pole,lunar_lander,continuous_mountain_car,mountain_car,pendulum}] [--estimator {Reinforce,Gpomdp,SarahPg,PageStormPg,Svrpg,StormPg,PagePg,all}]
+                      [--output OUTPUT] [--num_traj NUM_TRAJ] [--iter ITER] [--subit SUBIT] [--batch_size BATCH_SIZE] [--mini_batch_size MINI_BATCH_SIZE] [--flr FLR] [--lr LR] [--mlr MLR]
+                      [--prob PROB] [--alpha ALPHA] [--plot_files PLOT_FILES [PLOT_FILES ...]] [--plot] [--use_cuda]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --game {cart_pole,lunar_lander,continuous_mountain_car,mountain_car,pendulum}
+                        Game to be tested
+  --estimator {Reinforce,Gpomdp,SarahPg,PageStormPg,Svrpg,StormPg,PagePg,all}
+                        Estimator to be used
+  --output OUTPUT       Output directory path
+  --num_traj NUM_TRAJ   Number of Total Trajectories
+  --iter ITER           Number of repeted iterations
+  --subit SUBIT         Max allowed number of subiterations
+  --batch_size BATCH_SIZE
+                        Batch Size
+  --mini_batch_size MINI_BATCH_SIZE
+                        Mini Batch Size
+  --flr FLR             First Learning rate
+  --lr LR               Learning rate
+  --mlr MLR             this is magnitude of update by self.optimizer_sub
+  --prob PROB           Probability
+  --alpha ALPHA         Alpha
+  --plot_files PLOT_FILES [PLOT_FILES ...]
+                        Plot Specific Files
+  --plot                Plot the given estimator
+  --use_cuda            Use CUDA
+
+
+
+
+```
+
 
 ## Schedule
 
