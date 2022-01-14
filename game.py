@@ -34,29 +34,26 @@ class game(metaclass=ABCMeta):
 			self.env.action_space.seed(seed)
 
 
-
 	def sample(self, max_t, eval):
 		pass
 
+
 	def generate_data(self, estimator, hyper_parameters, sweep_parameter, number_of_sampled_trajectories = 10, number_of_runs = 1, root_path="./"):
 		"""
-		generate a file of 3d tuples: (number of sample trajectories, mean reward, CI)
-		until it reaches the specified number of trajectories ("number_of_sampled_trajectories")
+		trains chosen estimator with selected hyperparameters until it reaches "number_of_sampled_trajectories"
+		trajectories; the training process is repeated number_of_runs times;
+		at the end, it generatess files with all reward data which we later plot 
 		"""
-
 
 		results = []
 		for i in range(number_of_runs):
 			self.reset(i) # Each run has different seed, but same across estimators
 			estimator_instance = estimator(self, hyper_parameters)
-			# evaluations = []
 			while True:
 				estimator_instance.step(self) # performs one step of update for the selected estimator
 									   # this can be one or more episodes
-				# after policy NN updates, we need to evaluate this updated policy using self.evaluate()
-				# TODO: store the returned values: trajectories, mean_reward, CI_reward in some file
+
 				if self.number_of_sampled_trajectories > number_of_sampled_trajectories:
-					# print("finish",`${}`)
 					print(f'finish run {i+1} of {number_of_runs}, length : {len(self.rewards_buffer)}, ntraj {self.number_of_sampled_trajectories}')
 					self.number_of_sampled_trajectories = 0
 					results.append(self.rewards_buffer)

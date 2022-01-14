@@ -28,11 +28,8 @@ class StormPg(VrEstimator):
 
 
     def step(self, game):  # one step of update
-
         self.inner_loop_update(game)  # inner loop of SARAH-PG algorithm
 
-        # sample randomly from learned policies
-        self.sample_policy_update(game)
 
     def full_grad_update(self, game):
         #self.snapshot_update(game)  # update snapshot with weights of current NN
@@ -43,6 +40,7 @@ class StormPg(VrEstimator):
         self.mu = {k: v / self.N for k, v in gradient_estimators.items()}  # average
         self.network_update(self.mu, game, first_iteration=True)  # then we update current policy network]
         self.mu = {k: (1 - self.alpha) * v / self.N for k, v in gradient_estimators.items()}  # average and scale
+
 
     def inner_loop_update(self, game):
         gradient_estimators = self.inner_loop_estimators(game)

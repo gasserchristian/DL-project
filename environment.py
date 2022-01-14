@@ -6,8 +6,6 @@ Games and gradient estimators are imlemented as instances of different classes
 from reinforce import Reinforce
 from gpomdp import Gpomdp
 from svrpg import Svrpg
-from svrpg_manual_adam import Svrpg_manual
-from svrpg_automatic_adam import SvrpgAuto
 from sarahpg import SarahPg
 from stormpg import StormPg
 from pagepg import PagePg
@@ -349,11 +347,11 @@ if __name__ == '__main__':
         {'slug': 'Gpomdp', 'class': Gpomdp},
         {'slug': 'SarahPg', 'class': SarahPg},
         {'slug': 'PageStormPg', 'class': PageStormPg},
-        {'slug': 'Svrpg', 'class': SvrpgAuto},
+        {'slug': 'Svrpg', 'class': Svrpg},
         {'slug': 'StormPg', 'class': StormPg},
         {'slug': 'PagePg', 'class': PagePg},
-        {'slug': 'Svrpg_auto', 'class': SvrpgAuto},
     ])
+
     environment.registerGameInstances([
         {'slug': 'cart_pole', 'plotTitle': 'Cart pole', 'instance': cart_pole()},
         {'slug': 'lunar_lander', 'plotTitle': 'Lunar Lander', 'instance': lunar_lander()},
@@ -404,12 +402,11 @@ if __name__ == '__main__':
     estimator_hyper_parameters  = {
         "Reinforce": {"mini_batch_size":10, "lr": 3e-3},
         "Gpomdp": {"mini_batch_size":5, "lr": 3e-3},
-        "SarahPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3, "flr": 6e-3},
+        "SarahPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-2, "flr": 6e-2},
         "PageStormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
-        "Svrpg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3, "flr": 6e-3},
         "StormPg": {"batch_size": 5, "mini_batch_size": 3, "lr": 3e-3},
         "PagePg": {"lr": 2.5e-2, "batch_size": 5, "mini_batch_size": 3, "flr": 6e-3},
-        "Svrpg_auto": {"batch_size": 100, "mini_batch_size": 10, "lr": 3e-3, "flr": 6e-3},
+        "Svrpg": {"batch_size": 100, "mini_batch_size": 10, "lr": 3e-3, "flr": 6e-3},
         "all": {}
     }
 

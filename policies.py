@@ -1,5 +1,5 @@
 """
-This module contains parametrizations for policies
+This module contains a collection of policy networks 
 """ 
 
 import torch
@@ -9,10 +9,7 @@ from torch.distributions import Categorical
 
 
 class Basic_Policy(nn.Module):
-	""" 
-	our simplest policy network
-	we use it for discrete cart pole game
-	"""
+	"""Basic policy network for experiments"""
 
 	def __init__(self, state_size=4, action_size=2, hidden_size=32):
 		super(Basic_Policy, self).__init__()
@@ -52,10 +49,55 @@ def mlp(sizes, activation, output_activation=nn.Identity):
     return nn.Sequential(*layers)
 
 
+class CartPole_Policy(nn.Module):
+	"""Policy network for CartPole game"""
+
+	def __init__(self, obs_dim=4, act_dim=2, hidden_sizes=32, activation=nn.ReLU):
+		super().__init__()  
+		self.logits_net = mlp([obs_dim] + [hidden_sizes] + [act_dim], activation)
+
+	def _distribution(self, obs):
+		"""Takes the observation and outputs a distribution over actions."""
+		logits = self.logits_net(obs)
+		return Categorical(logits=logits)
+
+	def _log_prob_from_distribution(self, pi, act):
+		"""
+		Takes a distribution and action, then gives the log-probability of the action
+		under that distribution.
+		"""
+		return pi.log_prob(act)
+
+	def forward(self, obs, act=None):
+		"""
+		Produce action distributions for given observations, and then compute the
+		log-likelihood of given actions under those distributions.
+		"""
+		pi = self._distribution(obs)
+		logp_a = None
+		if act is not None:
+			logp_a = self._log_prob_from_distribution(pi, act)
+		return pi, logp_a
+	
+	def step(self, state):
+		"""
+		Take a state and return an action, and log-likelihood of chosen action.
+		"""
+		with torch.no_grad():
+			action = self.forward(state)[0].sample() 
+			log_prob_action = self.forward(state, action)[1]
+
+		# convert tensors to numerical values 
+		action = action.detach().numpy()  
+		log_prob_action = log_prob_action.detach().numpy()
+
+		return action, log_prob_action
+
+
 class Lunar_Policy(nn.Module):
 	"""Policy network for Lunar Lander game"""
 
-	def __init__(self, obs_dim=8, act_dim=4, hidden_sizes =(64,64), activation=nn.Tanh):
+	def __init__(self, obs_dim=8, act_dim=4, hidden_sizes=(64,64), activation=nn.Tanh):
 		super().__init__()  
 		self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
 
@@ -97,44 +139,39 @@ class Lunar_Policy(nn.Module):
 		return action, log_prob_action
 
 
-
 class GaussianPolicy(nn.Module):
-    def __init__(self,
-                 input_dim =2,
-                 output_dim = 1,
-                 hidden_nonlinearity=nn.Tanh()):
-        super().__init__()
+	"""Gaussian policy network, for Mountain Car game"""
 
-        self.model = nn.Sequential(*[
-            nn.Linear(input_dim, 16),
-            hidden_nonlinearity,
-            nn.Linear(16, 8),
-            hidden_nonlinearity,
-            nn.Linear(8, output_dim)
-        ])
+	def __init__(self, input_dim =2, output_dim = 1, hidden_nonlinearity=nn.Tanh()): 
+		super().__init__()
 
-        self.variance = torch.eye(output_dim) * 1e-3
+		self.model = nn.Sequential(*[
+			nn.Linear(input_dim, 16),
+			hidden_nonlinearity,
+			nn.Linear(16, 8),
+			hidden_nonlinearity,
+			nn.Linear(8, output_dim)
+		])
+
+		self.variance = torch.eye(output_dim) * 1e-3
         
-    def forward(self, x):
+	def forward(self, x):
         
-        return torch.distributions.multivariate_normal.MultivariateNormal(
-            self.model(x), covariance_matrix=self.variance)
+		return torch.distributions.multivariate_normal.MultivariateNormal(
+			self.model(x), covariance_matrix=self.variance)
 
-    def act(self, state):
+	def act(self, state):
         
-        state = torch.from_numpy(state).float().unsqueeze(0)
-        dist = self.forward(state)
-        
+		state = torch.from_numpy(state).float().unsqueeze(0)
+		dist = self.forward(state)
+		sample = dist.sample()
+		sample = torch.clip(sample, -1, 1)
+		log_prob = dist.log_prob(sample)
 
-        # print(action)
-        sample = dist.sample()
-        # sample = torch.clip(sample, -1, 1)
-        log_prob = dist.log_prob(sample)
+		return sample, log_prob
 
-        return sample, log_prob
-
-    def log_prob(self, state, action): # probability of taking action "action" in state "state"
-        state = torch.from_numpy(state).float().unsqueeze(0)
-        probs = self.forward(state)
-        log_prob = probs.log_prob(action)
-        return log_prob
+	def log_prob(self, state, action): # probability of taking action "action" in state "state"
+		state = torch.from_numpy(state).float().unsqueeze(0)
+		probs = self.forward(state)
+		log_prob = probs.log_prob(action)
+		return log_prob

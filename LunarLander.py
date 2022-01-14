@@ -2,8 +2,6 @@
 This file contains the LunarLander environment.
 
 IMPORTANT NOTE: DO NOT CHANGE THIS FILE.
-
-You should not have to understand how the environment works to solve the project.
 """
 
 import sys, math

@@ -32,6 +32,7 @@ class PageStormPg(VrEstimator):
         self.alpha = args["alpha"]
         self.policy_parameter_list = []
 
+
     def step(self, game):  # one step of update
         if self.p:
             self.full_grad_update(game)  # full grad calculation of PAGE-PG algorithm
@@ -40,8 +41,6 @@ class PageStormPg(VrEstimator):
         self.t += 1  # update counter for step updates
         self.p = np.random.choice(2, p=[1 - self.prob, self.prob])
 
-        # sample randomly from learned policies
-        self.sample_policy_update(game)
 
     def full_grad_update(self, game):
 

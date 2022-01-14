@@ -29,9 +29,7 @@ class SarahPg(VrEstimator):
 
         self.inner_loop_update(game)  # inner loop of SARAH-PG algorithm
         self.t += 1
-
-        # sample randomly from learned policies
-        self.sample_policy_update(game)
+        
 
     def outer_loop_update(self, game):
 

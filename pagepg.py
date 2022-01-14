@@ -2,8 +2,6 @@ from operator import add
 import numpy as np
 from torch import optim
 from estimator import VrEstimator
-import time
-
 
 class PagePg(VrEstimator):
 
@@ -32,6 +30,7 @@ class PagePg(VrEstimator):
         self.p = 1  # sampled probability value: if 1, do full gradient calculation; if 0, do SARAH (initialize to 1)
         self.mu = None  # return of outer loop
 
+
     def step(self, game):  # one step of update
         if self.p:
             self.full_grad_update(game)  # full grad calculation of PAGE-PG algorithm
@@ -40,8 +39,6 @@ class PagePg(VrEstimator):
         self.t += 1  # update counter for step updates
         self.p = np.random.choice(2, p=[1 - self.prob, self.prob])
 
-        # sample randomly from learned policies
-        self.sample_policy_update(game)
 
     def full_grad_update(self, game):
 
@@ -52,6 +49,7 @@ class PagePg(VrEstimator):
         # self.mu is the main result of this method
         self.mu = {k: v / self.N for k, v in gradient_estimators.items()}  # average
         self.network_update(self.mu, game, first_iteration=True)  # then we update current policy network
+
 
     def sarah_inner_update(self, game):
         gradient_estimators = self.inner_loop_estimators(game)
