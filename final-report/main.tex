@@ -1,0 +1,590 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathtools}
+
+\usepackage[bottom]{footmisc}
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+%% Sets page size and margins
+\usepackage[a4paper,top=2 cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=4cm, marginparsep=2cm, columnsep = 2em]{geometry}
+\usepackage{titlesec}
+
+
+
+%% Useful packages
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{amsmath}
+\usepackage{svg}
+\usepackage{siunitx}
+
+
+\usepackage{xcolor}
+
+\definecolor{ourblue}{HTML}{57A0C2}
+
+
+\usepackage[colorlinks=true, urlcolor=blue, citecolor=black, linkcolor=black, anchorcolor=black]{hyperref}
+\usepackage[
+backend=biber,
+style=ieee,
+]{biblatex}
+\addbibresource{references.bib}
+\usepackage{sectsty}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+
+
+
+%% Title
+\title{
+		%\vspace{-1in} 	
+		%\usefont{OT1}{bch}{b}{n}
+		    Probabilistic Gradient Estimators for Policy Gradient Methods
+    		\author{
+    		\small Emiljo Mehillaj \\ \small\url{emehillaj@student.ethz.ch} \and  %- 20-952-420 \and
+    		\small Vasilii Kopylov  \\ \small\url{vkopylov@student.ethz.ch} \and  % - 20-943-825 \and
+    		\small Jakub Mandula \\ \small\url{jmandula@student.ethz.ch} \and
+    		\small Christian Gasser \\ \small\url{chgasser@student.ethz.ch}   %- 15-830-516 \and
+            }
+            
+}
+\sectionfont{\fontsize{12}{15}\selectfont}
+\titlespacing*{\section}
+{0pt}{5.5ex plus 1ex minus .2ex}{4.3ex plus .2ex}
+\titlespacing*{\subsection}
+{0pt}{5.5ex plus 1ex minus .2ex}{4.3ex plus .2ex}
+\date{}
+
+\begin{document}
+
+\maketitle
+\selectlanguage{english}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ABSTRACT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+Policy gradient methods are among the most effective approaches in challenging reinforcement learning problems with large state and/or action spaces but suffer from a high variance of gradient estimates. Variance reduction techniques for solving non-convex problems have been recently explored for policy gradient-based problems. These techniques exhibit an advantage over traditional policy gradient estimators in sample complexity and training stability. In this work, we introduce a novel algorithm - Probabilistic Gradient Estimator for Policy Gradient (PAGE-PG) - which has fewer hyperparameters than other variance-reduced algorithms. In addition, we introduce a hybrid estimator, namely PAGESTORM-PG, whose theoretical convergence bounds promise practical improvements. Deep learning experiments on the Cart-Pole and Lunar Lander tasks confirm the practical advantages of our proposed variance reduction techniques over other state-of-the-art policy gradient algorithms.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% INTRODUCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+Reinforcement Learning (RL) is a framework where
+agents interact with the environment to maximize a cumulative reward based on a learnable policy \cite{RN6}. There are two basic techniques to solving RL problems: model-based and model-free approaches \cite{lecun}. A model-free problem is solved either by estimating a value function of a policy $\pi$ directly (e.g., Q-learning \cite{qlearning}), or by policy-based methods (e.g., Q-Prop \cite{williams}). 
+Policy gradient (PG) methods learn the policy parameters based on the gradient of some scalar performance measure $J(\theta)$ with respect to the policy parameters \cite{sutton2018reinforcement}. One way of expressing $J(\theta)$ is as the expected total reward given below: 
+\begin{equation} \label{eq: 1}
+\begin{aligned}
+J(\theta)
+&=\mathbb{E}_{\tau \sim \pi_{\theta}} r(\tau)
+\end{aligned}
+\end{equation}
+where $ \tau $ is a trajectory that contains states and actions involved in an episodic task.
+Usually, this problem is solved by gradient descent (GD) where the gradients are calculated from Equation (\ref{eq: 2}) as:
+\begin{equation} \label{eq: 2}
+\nabla J(\theta)=\nabla \mathbb{E}_{\tau \sim \pi_{\theta}} r(\tau)=\mathbb{E}_{\tau \sim \pi_{\theta}}\left[r(\tau) \nabla \log \pi_{\theta}(\tau)\right]
+\end{equation}
+
+The computation of this gradient is costly and we need to estimate it. A straightforward  estimator is the Monte Carlo estimator shown below:
+
+\begin{equation} \label{eq: 3}
+\hat{\nabla} J(\theta)=\frac{1}{N} \sum_{i=0}^{N}\left[r(\tau) \nabla \log \pi_{\theta}(\tau)\right]
+\end{equation}
+
+However, two common problems that arise during training via PG are the distribution shift and the high inherent training variance  \cite{RN12}. Therefore, several variance-reduced policy gradient methods that include several hyperparameters have been proposed to address these problems. 
+
+In this work, we propose two novel policy-gradient algorithms (PAGE-PG and PAGESTORM-PG) which adapt the PAGE gradient estimator for the PG setting. To the best of our knowledge, a PAGE adjustment to the RL setting has not yet been implemented. Our motivation for the PAGE-PG lies in the favorable convergence results of PAGE in online settings. PAGE exhibits convergence rates that are on par with SARAH and STORM when the PL condition is not satisfied. When such a condition is met locally, the convergence rate becomes linear \cite{pagepaper}.  Another reason why PAGE is attractive for the RL setting is that we can fix its hyperparameter (the switching probability) to an empirically suitable value as done in the original PAGE paper.  In addition, drawing inspiration from the further exhibited variance-reduction in STORM, we propose a hybrid estimator, PAGESTORM-PG. With PAGESTORM-PG, we adapt PAGE-PG to include an exponential moving average SARAH instead of classical SARAH. We derive theoretical results on gradient complexity bounds for PAGESTORM-PG. Experiments on Cart-Pole and Lunar-Lander tasks show the experimental edge of PAGE-PG and PAGESTORM-PG compared to other algorithms. 
+
+This report is structured as follows. In Section \ref{models}, we give more detail about related work and our two proposed algorithms. Section \ref{results} presents the results of this work. The implications of the obtained results and theoretical convergence bounds will be elaborated on in Section \ref{discussion}. We draw our conclusions in Section \ref{summary}. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METHODS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Models and Methods} \label{models}
+
+In this section, we will introduce related groundwork and describe our line of work in detail. In Section \ref{relatedwork}, we explain some common variance-reduced policy gradient algorithms and classical PAGE. Then, in Section \ref{sec: pagepgsec} and Section \ref{sec: pagepgstorm}, we shift the scope of the discussion to our two proposed methods: PAGE-PG and PAGESTORM-PG.
+
+\subsection{Related Work} \label{relatedwork}
+
+Variance-reduced policy gradient estimators aim at maximizing Equation \ref{eq: 1}. They are necessary substitutions to other gradient estimators because plain gradient-based algorithms do not account for the distribution shift in RL. Some variance-reduced algorithms include: 
+
+\begin{enumerate}
+    \item \textbf{GPOMDP:} This method reduces the variance of the gradient estimator in Equation (\ref{eq: 2}) through the subtraction of a state-dependent baseline as shown below \cite{gpomdp}:
+    \begin{equation}
+    \hat{\nabla} J(\theta)=\frac{1}{N} \sum_{i=1}^{N} d_{i}(\theta)
+    \end{equation}
+with: 
+\begin{multline} \label{eq: 5}
+d_{i}(\theta)=\sum_{h=0}^{H-1}\left(\sum_{t=0}^{h} \nabla \log \pi_{\theta}\left(x_{t} \mid a_{t}\right)\right)\\\left(\gamma^{h} r\left(x_{h}, a_{h}\right)-b_{h}\right)
+\end{multline}
+
+   where $b_{h}$ is a constant depending on the state $x_{h}$ and $d_{i}(\theta)$ is the GPOMDP unbiased estimator per trajectory. For our further discussion, we refer to $d_{i}(\theta)$ as the GPOMDP gradient estimator. 
+
+    \item \textbf{SVRPG:} This estimator addresses the distribution shift issue in RL through the introduction of importance sampling between trajectories generated by different policy parametrizations \cite{RN17} and can be written as:
+    \begin{equation} \label{eq: 6}
+    \mathbf{g}_{t+1}=d_{i}\left(\theta_{t+1}\right)-d_{i}^{\theta_{t+1}}(\tilde{\theta})+\tilde{u}
+    \end{equation}
+    where $\tilde{u}$ is a fixed point estimation of the gradient calculated from snapshot policy parameters (which are updated less often than the current policy parameters), $d_{i}\left(\theta_{t+1}\right)$ is the GPOMDP gradient estimator with respect to the current policy parameters, and $d_{i}^{\theta_{t+1}}(\tilde{\theta})$ is the importance weight corrected GPOMDP gradient estimator with respect to the snapshot policy parameters at the current iteration. The importance weight correction is done according to the following formula:
+    $d_{i}^{\theta^{\prime}}(\theta)=\sum_{h=0}^{H-1} \frac{p\left(\tau_{i, h} \mid \theta\right)}{p\left(\tau_{i, h} \mid \theta^{\prime}\right)} d_{i, h}(\theta)$.
+    
+    
+    \item \textbf{SARAH-PG:} This method is a recursive version of SVRPG which uses previous time step policy parameters instead of a fixed snapshot policy. SARAH-PG can be written in the following way \cite{RN3}:
+    
+    \begin{equation}
+    \mathbf{g}_{t+1}=d_{i}\left(\theta_{t+1}\right)-d_{i}^{\theta_{t+1}}\left(\theta_{t}\right)+\mathbf{g}_{t}
+    \end{equation}
+    
+    \item \textbf{STORM-PG:} This gradient estimator combines the GPOMDP unbiased estimator and SARAH \cite{stormpaper}. A tunable hyperparameter $\alpha$ controls the relative weighting between these two estimators as illustrated below:
+    \begin{align} \label{eq: 8}
+    \begin{split}
+    {g}_{t+1}={}&
+    (1-\alpha)\left[d_{i}\left(\theta_{t+1}\right)-d_{i}^{\theta_{t+1}}\left(\theta_{t}\right)+\mathbf{g}_{t}\right]+\\
+    &\alpha d_{i}\left(\theta_{t+1}\right)
+    \end{split}
+    \end{align}
+\end{enumerate}
+Recently, a novel stochastic gradient estimator was introduced for solving optimization problems in the non-convex regime: Probabilistic Gradient Estimator (PAGE). This method relies on probabilistic switching between the vanilla SGD and SARAH and shows superior convergence results in models trained on MNIST, LeNet, etc. \cite{pagepaper}.
+
+\begin{algorithm}
+\caption{Page-PG} \label{alg: page}
+\hspace*{\algorithmicindent} \textbf{Input} number of epochs $T$, large batch size $N$,
+ \hspace*{\algorithmicindent}\hspace*{\algorithmicindent}min batch size $B$, initial parameter $\theta_0$ \\
+ \hspace*{\algorithmicindent}\hspace*{\algorithmicindent}GPOMDP gradient estimator d \\
+\hspace*{\algorithmicindent} \textbf{Output} 
+\begin{algorithmic}[1]
+\State Sample $N$ trajectories from $p(\cdot|\theta_0)$
+\State $g_0 \gets \frac{1}{N}\sum_{i\in N} d_i(\theta_0)$
+\For{$i=0$ to $T$}
+\State $\theta_{t+1} \gets \theta_t + \eta g_t$
+\State
+\hspace*{\algorithmicindent} \label{line5} $$
+\hspace*{\algorithmicindent}g_{t+1} =
+    \begin{cases}
+    %   \frac{1}{N}\sum_{i\in N}d_i(\theta_{t+1})\text{ with probability p, or}\\
+    %   g_t+\frac{1}{B}\sum_{i\in B}(d_i(\theta_{t+1})-d_i^{\theta_{t+1}}(\theta+1))
+        \textit{with probability $p$:}\\ 
+        \text{sample $N$ trajectories from $p(\cdot|\theta_{t+1})$}\\
+       \frac{1}{N}\sum_{i\in N}d_i(\theta_{t+1})\\
+       
+       \\
+       \textit{with probability $1-p$:} \\
+       \text{sample $B$ trajectories from $p(\cdot|\theta_{t+1})$}\\
+       $g_t+\frac{1}{B}\sum_{i\in B}(d_i(\theta_{t+1})- d_i^{\theta_{t+1}}(\theta+1))$\\
+       
+    \end{cases}$$
+% \State sample $N$ trajectories from $p(\cdot|\theta_{t+1})$\\
+% \hspace*{\algorithmicindent}with probability p or sample $B$\\
+% \hspace*{\algorithmicindent}trajectories from $p(\cdot|\theta_{t+1})$\\
+% \hspace*{\algorithmicindent}with probability of $1-p$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm} 
+\caption{Page-Storm-PG} \label{alg: page_storm}
+\hspace*{\algorithmicindent} \textbf{Input} number of epochs $T$, large batch size $S_0$,
+ \hspace*{\algorithmicindent}\hspace*{\algorithmicindent}min batch size $B$, initial parameter $\theta_0$ \\
+ \hspace*{\algorithmicindent}\hspace*{\algorithmicindent}GPOMDP gradient estimator d \\
+\hspace*{\algorithmicindent} \textbf{Output} 
+\begin{algorithmic}[1]
+\State Sample $S_0$ trajectories from $p(\cdot|\theta_0)$
+\State $g_0 \gets \frac{1}{S_0}\sum_{i\in S_0} d_i(\theta_0)$
+\For{$i=0$ to $T$}
+\State $\theta_{t+1} \gets \theta_t + \eta g_t$
+\State
+\hspace*{\algorithmicindent} $$
+  \hspace*{\algorithmicindent}g_{t+1} =
+    \begin{cases}
+    \textit{with probability $p$:}\\
+    \text{sample $S_0$ trajectories from $p(\cdot|\theta_{t+1})$} \\
+    \frac{1}{S_0}\sum\limits_{i\in S_0}d_i(\theta_{t+1}) \\
+       \\
+        \textit{with probability $1-p$:} \\ 
+        \text{sample $B$ trajectories from $p(\cdot|\theta_{t+1})$}\\
+       (1 -\alpha)g_t+\frac{1}{B}\sum\limits_{i\in B}(d_i(\theta_{t+1})- \\ (1 -\alpha)d_i^{\theta_{t+1}}(\theta+1)) \\
+       
+      
+    \end{cases}
+$$
+% \State sample $N$ trajectories from $p(\cdot|\theta_{t+1})$\\
+% \hspace*{\algorithmicindent}with probability p or sample $B$\\
+% \hspace*{\algorithmicindent}trajectories from $p(\cdot|\theta_{t+1})$\\
+% \hspace*{\algorithmicindent}with probability of $1-p$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\subsection{PAGE-PG} \label{sec: pagepgsec}
+
+Our goal is again to maximize Equation \ref{eq: 1}. An application of PAGE to the RL setting is not straightforward primarily due to the non-stationarity problem. Due to non-stationarity, straight application of the PAGE gradient estimator to the policy setting would make this estimator biased as the trajectories are forward sampled according to different distributions. A remedy to this problem is the introduction of importance sampling to account for the distribution shift \cite{importancesampling}. 
+
+Accounting for the distribution shift, we can propose the PAGE-PG algorithm provided in Algorithm \ref{alg: page}. The structure of PAGE-PG is similar to standard PAGE proposed in \cite{pagepaper} except for the importance weighting. PAGE-PG updates the gradient estimates according to a probabilistic switching between vanilla SGD and the SARAH estimator as demonstrated in Line \ref{line5} of Algorithm \ref{alg: page}. Compared to other variance-reduced policy gradient methods such as SVRPG, PAGE has a single-loop structure which allows for a flexible gradient update. In addition, the switching probability can be fixed to $p_{t} \equiv \frac{B}{B+N}$ since the authors in \cite{pagepaper} obtained optimal convergence rates with such a value in online settings (such as reinforcement learning).
+
+
+\subsection{PAGESTORM-PG} \label{sec: pagepgstorm}
+
+In contrast to PAGE, the PAGESTORM-PG estimator arises from a probabilistic switching between vanilla gradient descent and STORM-PG. Our motivation for this estimator is in part due to the theoretical advantage of STORM-PG over other variance-reduced algorithms. Additionally, STORM rectifies the disparity between the empirical performance and theoretical bounds of SARAH \cite{stormpaper}. Thus, by substituting the SARAH inner update present in PAGE-PG with STORM, we expect a gain in performance.
+
+
+The blend of PAGE-PG and STORM-PG comes about organically due to the single loop structure that these two algorithms have as shown in the pseudocode of Algorithm \ref{alg: page_storm}. We also note that the addition of STORM into the structure of PAGE-PG comes at the expense of an additional hyper-parameter $\alpha$ as in Equation \ref{eq: 8}. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXPERIMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results} \label{results}
+\subsubsection*{Experiments}
+We conducted a set of experiments to validate our expectations regarding PAGE-PG and PAGESTORM-PG performance. The algorithms were evaluated on reinforcement learning environments from OpenAI Gym including the Cartpole and Lunar Lander problems \cite{brockman2016openai}. 
+A Neural Softmax Policy was initialized with a fixed seed for a given run. For the baselines, we compared the proposed algorithms with the related algorithms: GPOMDP, SVRPG and STORM-PG. 
+ 
+ The learning process was repeated $10$ times with consistent but different initialization seeds. The runs were averaged, and plotted together with the run's standard deviation. 
+
+The optimal estimator hyper-parameters for learning rate $\eta$, probability $p$, and $\alpha$ were found by performing a grid search on the problems with a reduced number of repetitions. The summary of the used parameters can be found in Table \ref{tb:hyper_parameters}.
+
+\begin{table}[h]
+\begin{center} {\footnotesize
+%\begin{tabular}{p{2.6cm}p{1.8cm}p{0.2cm}p{0.2}}
+\begin{tabular}{p{2.5cm}ccc}
+\hline
+%  & \multicolumn{3}{c}{AFC Window 1}  \\
+\multicolumn{1}{p{0.05\textwidth}}{} & \multicolumn{1}{c}{Algorithm} & \multicolumn{1}{c}{Cartpole} & \multicolumn{1}{c}{Lunar L.}\\
+\hline
+NN Size of Hidden Layers       & -              & $32$ & $(64, 64)$     \\
+NN activation                  & -              & ReLu & Tanh \\
+Task horizon                   & -              & $200$ & $200$ \\
+Total trajectories             & -              & $750$ & $750$ \\
+\hline
+Discount factor $\gamma$       & -              & $0.98$ & $0.99$ \\
+                               & {\tiny GPOMDP} & $\num{3e-3}$  & $\num{3e-3}$ \\
+                               & {\tiny PAGE-PG} & $\num{2.5e-2}$ & $\num{2e-3}$ \\
+ Learning rate $\eta$          & {\tiny PAGESTORM}  & $\num{3e-3}$ & $\num{2e-3}$   \\ 
+                               & {\tiny STORM-PG}  & $\num{3e-3}$ & $\num{2e-3}$   \\
+                               & {\tiny SVRPG}     & $\num{3e-3}$ & $\num{2e-3}$   \\
+
+Estimator weight $\alpha$      & - & $0.9$ & $0.9$\\
+Probability $p$                & - & $0.9$ & $0.9$\\
+Batch size $N$                 & - & $5$ & $5$ \\
+                               & {\tiny GPOMDP} & $5$ & $5$   \\
+                               & {\tiny PAGE-PG} & $3$ & $3$   \\
+Mini-Batch size $B$            & {\tiny PAGESTORM} & $3$ & $3$   \\
+                               & {\tiny STORM-PG} & $3$ & $3$   \\
+                               & {\tiny SVRPG} & $3$ & $3$   \\
+
+\hline
+\end{tabular} }
+\end{center}
+\caption{Hyper parameters used for Cartpole and LunarLander games}
+\label{tb:hyper_parameters}
+\end{table}
+
+
+\begin{figure}[h!]
+  \includesvg[width=1\columnwidth]{figures/cart_pole2.svg}
+  \caption{Best average learning rewards for cart\_pole problem }
+  \label{fig:cart_pole}
+\end{figure}
+
+\begin{figure}[h!]
+  \includesvg[width=1\columnwidth]{figures/lunar_lander2.svg}
+  \caption{Best average learning rewards for lunar\_lander problem.  }
+  \label{fig:lunar_lander}
+\end{figure}
+
+\subsubsection*{Comparison of different algorithms}
+In Figure \ref{fig:cart_pole}, we notice that PAGE-PG shows the best performance under the Cart-Pole environment setting followed by  PAGESTORM-PG, STORM-PG, SVRPG, and GPOMDP. We see that PAGE-PG reaches the maximum value after approximately 400 trajectories while PAGESTORM-PG arrives at the maximum after 450 trajectories. Baseline algorithms lag behind: STORM-PG reaches the maximum at around 550 trajectories, SVRPG at 650, and GPOMDP at 700.
+
+Under the Lunar-Lander environment setting, in Figure \ref{fig:lunar_lander}, we spot that PAGESTORM-PG outperforms other variance-reduced algorithms followed by STORM-PG, PAGE-PG, SVRPG, and GPOMDP. We notice that for the two games, both estimators show similar convergence speeds and variance. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DISCUSSION - Discuss the strengths and weaknesses of your approach, based on the results. Point out the implications of your novel idea on the application concerned.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Discussion} \label{discussion}
+
+The results in Figure \ref{fig:cart_pole} and \ref{fig:lunar_lander} reveal that, in general, our suggested PAGE-PG and PAGESTORM-PG algorithms have favorable performance compared to other variance-reduced algorithms. Comparing PAGE-PG and PAGESTORM-PG, we notice similar convergence properties. The extra hyperparameter involved in  PAGESTORM-PG makes tuning harder and can lead to varying results. The satisfactory performance of PAGE-PG is expected given the smaller amount of tunable hyperparameters on the one hand and the possible time-to-time switch to a linear convergence rate on the other hand (as in classical PG). Even though we performed a grid search on the switching probability hyper-parameter $p$, we found out that empirically this hyper-parameter can still be fixed to $\frac{B}{B+N}$ and generate good results. To substantiate the empirical performance of PAGESTORM-PG, we will conduct a theoretical bound analysis in the next section.
+
+\subsection{Convergence Analysis}
+
+In this part, we present two convergence lemmas and a convergence theorem for PAGESTORM-PG. We refer the reader to Appendix \ref{appendix} for the proofs. To state the following convergence bounds, we make assumptions about the boundedness (the rewards and the gradients with respect to the log policy are bounded by constants), the smoothness (the log policy gradient's Hessian norm, i.e, $\left\|\nabla_{\boldsymbol{\xi}}^{2} \log \pi_{\boldsymbol{\xi}}(a \mid s)\right\|$ is also bounded), finite-variance (the variance of the unbiased GPOMDP estimate in Equation \ref{eq: 5} is bounded by $\sigma^{2}$), and finite IS variance (the variance of the importance sampling weight is also bounded). These are all valid assumptions in the RL setting. 
+
+\\
+
+
+Lemma \ref{lm:convergence} involves a recursive calculation of the gradient estimation error. The error between the PAGESTORM gradient estimator at a certain time point $g_{t+1}$ and the true gradient $\nabla_\theta J(\theta_{t+1})$ is bounded by $(1-p)\left[(1-\alpha)^2\right]$ times the estimation error of the previous iteration at time $t$ and some additional terms depending on the norm $||g_{t}||^2$ and discount-related constants $C_\gamma^2$.
+
+\begin{lemma} \label{lm:convergence}
+Suppose that $g_t$ and $\theta_t$ are the iteration sequence as defined in Algorithm \ref{alg: page_storm}. $J(\theta)$ is the objective function to be optimized. Then the estimation error can be bounded by:
+\begin{equation}
+\begin{split}
+& \mathbb{E}||g_{t+1}-\nabla_\theta J(\theta_{t+1})||^2 \leq \\ 
+& (1-p)[(1-\alpha)^2 \mathbb{E}||g_{t}-\nabla_\theta J(\theta_{t})||^2 + \\
+& \frac{2\alpha^2\sigma^2}{B} + \frac{2 \eta^2}{B}(1-\alpha)^2 C_\gamma^2 \mathbb{E} ||g_{t}||^2 ] + \\ 
+& p\left[\frac{\sigma^2}{S_0}2\right]
+\end{split}
+\end{equation}
+\end{lemma}
+
+
+Given Lemma \ref{lm:convergence}, we can follow by Lemma 2 which gives a calculation of the sum of the expected gradient estimator errors over time.
+
+%lemma 2
+\begin{lemma} \label{lm:sum_exp_error}
+The accumulated sum of the expected estimation error can be bounded by:
+\begin{equation}
+\begin{split}
+\sum^{T-1}_{t=0}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2\leq \frac{2}{2+p(1-\alpha)^2} \\
+[ \frac{(1-p)\alpha^2\sigma^2}{B}T+
+\frac{Tp\sigma^2}{S_0}+\mathbb{E}||g_0-\nabla_\theta J(\theta_0)||^2+ \\ 
+(1-p)(1-\alpha)^2\frac{C_\gamma^2\eta^2}{B}\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2]
+\end{split}
+\end{equation}
+\end{lemma}
+
+Following the two lemmas, we can set forth our main convergence theorem as shown below:
+
+%main theorem
+\begin{theorem} \label{tm:main_theorem}
+When :
+\begin{equation}
+\begin{split}
+1-\frac{4\eta^2(1-p)(1-\alpha)^2C_\gamma^2}{(\alpha+p(1-\alpha)^2)B}\geq0
+\end{split}
+\end{equation}
+then, after T iterations :
+\begin{multline*}
+\frac{1}{T}\sum_{t=0}^{T-1}\mathbb{E}||\nabla_\theta J(\theta_t)||^2\leq
+\frac{2\Delta}{\eta T}
++\frac{2\alpha\sigma^2}{B}\frac{1-p}{\alpha+p(1-\alpha)^2}\\
++\frac{2\sigma^2}{TS_0(\alpha+p(1-\alpha)^2)}
++\frac{2p\sigma^2}{S_0}\frac{1}{\alpha+p(1-\alpha)^2}
+\end{multline*}
+
+(for p=0, it reduces to STORM-PG)
+\end{theorem}
+
+Our main theorem concludes that after $T$ iterations, the expected gradient norm satisfies the provided bound. 
+We also note that if we convert to STORM by setting the switching probability $p$ to 0, our theorem reduces to the analysis presented in the original STORM-PG \cite{stormpaper}. This serves as a valuable validation check. 
+
+From our theorem, we can deduce two things about PAGESTORM-PG. First, we can see that after T iterates the algorithm reaches a point with expected gradient norm of order $\mathcal{O}\left(\frac{1}{T}+\frac{\sigma^{2}}{S_{0}}+\frac{\sigma^{2}}{T (B+(S_0-B)p)}\right)$ compared to STORM's $\mathcal{O}\left(\frac{1}{T}+\frac{\sigma^{2}}{S_{0}}+\frac{\sigma^{2}}{T B}\right)$. These results show that PAGESTORM-PG converges faster than STORM-PG given the same amount of iterations. Second, PAGESTORM-PG exhibits higher sample complexity compared to STORM-PG which might lead to empirical performance discrepancy. In PAGESTORM-PG, we have a sample complexity of $S_{0}+T(S_{0} p+B(1-p))$ compared to $S_{0}+TB$ of STORM (the complexity is higher in PAGESTORM-PG given $S_{0} \geqslant B$).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUMMARY - Summarize your contributions in light of the new results
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary} \label{summary}
+
+In this work, we presented two novel algorithms: PAGE-PG and PAGESTORM-PG. PAGE-PG was inspired by a recently proposed variance-reduced algorithm called PAGE. We found that PAGE-PG and PAGE-STORM-PG surpassed the performance of other state-of-the-art counterparts. This behavior was expected given the theoretical and empirical advantages of classical PAGE. PAGESTORM-PG was motivated due to the superior convergence properties of STORM. Theoretically, we affirm that incorporating STORM into PAGE leads to superior gradient norm complexity. This superiority can also be witnessed in the empirical results for the Cart-Pole and Lunar-Lander environments. Future works may address the proof that PAGE-PG and PAGESTORM-PG enjoy faster (linear) convergence rates when the PL condition is locally satisfied for the objective function. Another direction of future efforts could relate to the establishment of theoretical lower bounds for our algorithms. Furthermore, the application of our two methods in other environments is necessary to investigate the environment translation properties of our algorithms. 
+
+\printbibliography
+
+\onecolumn
+\appendix 
+\section{Convergence proofs} \label{appendix}
+\subsubsection*{Proof of Lemma \ref{lm:convergence}}
+\begin{proof}
+\begin{equation}
+\mathbb{E}||g_{t+1}-\nabla_\theta J(\theta_{t+1})||^2=\mathbb{E}(\mathbb{E}(||g_{t+1}-\nabla_\theta J(\theta_{t+1}||^2|F_t))
+\end{equation}
+Where $F_t$ is the information before time t
+\begin{align}
+\begin{split}\label{eq:1}
+    \mathbb{E}(||g_{t+1}-\nabla_\theta J((1-\alpha))||^2|F_t)={}& (1-p)\mathbb{E}(||(1-\alpha)(g_t+\frac{1}{B}\sum_{i\in B}(d_i(\theta_{t+1})-d_i^{\theta_{t+1}}(\theta_t)))+\nonumber\\
+    & \frac{1}{B}\sum_{i\in B}\alpha d_i(\theta_{t+1})-\nabla_\theta J(\theta_{t+1})||^2|F_t)+\nonumber\\
+    & p\mathbb{E}(||\frac{1}{S_0}\sum_{i\in S_0}d_i (\theta_{t+1})-\nabla_\theta J(\theta_{t+1})||^2|F_t)\nonumber\\
+    &\leq (1-p)((1-\alpha)^2||g_t-\nabla_\theta J(\theta_t)||^2+\frac{1}{B}2\alpha^2\sigma^2+\frac{1}{B}2\eta^2(1-\alpha)^2C^2_\gamma\mathbb{E}||g_t||^2)\nonumber\\
+    &+p \frac{\sigma^2}{S_0}2
+\end{split}\nonumber\\
+\end{align}
+
+Details for the last step can be found chapter A1 in \cite{stormpaper}
+
+\vspace{-1em}
+
+
+\begin{align}
+\begin{split}\label{eq:1}
+    \mathbb{E}||g_{t+1}-\nabla_\theta J(\theta_{t+1})||^2={}&\mathbb{E}(\mathbb{E}(||g_{t+1}-\nabla_\theta J(\theta_{t+1}||^2|F_t))\nonumber\\
+    &\leq(1-p)[(1-\alpha)^2\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2+\frac{2\sigma^2\alpha^2}{B}+\frac{2\eta^2}{B}(1-\alpha)^2C_\gamma^2\mathbb{E}||g_t||^2]+p\frac{\sigma^2}{S_0}2
+\end{split}\\
+\end{align}
+\end{proof}
+
+\vspace{-3em}
+
+\subsubsection*{Proof of Lemma \ref{lm:sum_exp_error}}
+\begin{proof}
+
+\begin{align}
+\begin{split}
+\alpha\sum_{t=0}^{T-1}||g_t-\nabla_\theta J(\theta_t)||^2\leq&
+\sum_{t=1}^{T}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2
+-(1-\alpha)^2\sum_{t=0}^{T-1}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2-\nonumber\\
+&\mathbb{E}(||g_t-\nabla_\theta(\theta_t)||^2-||g_0-\nabla_\theta J(\theta_0)||^2)\\
+& \leq [\text{lemma 1}]\\
+& \leq (1-p)(1-\alpha)^2\sum_{t=0}^{T-1}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2
++(1-p)\frac{2\alpha^2\sigma^2}{B}T+\\
+& (1-p)\frac{2\eta^2c_\gamma^2}{B}(1-\alpha)^2\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2
++p\frac{\sigma^2}{S_0}2T
+-(1-\alpha)^2
+-(1-\alpha)^2\sum_{t=0}^{T-1}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2-\nonumber\\
+& 
+\mathbb{E}(||g_T-\nabla_\theta J(\theta_T)||^2
+-||g_0-\nabla_\theta J(\theta_0)||^2)\\
+\end{split}\\
+\end{align}
+\vspace{-1em}
+
+Details for the first step can be found chapter A2 in \cite{stormpaper}
+
+\begin{align}
+\begin{split}
+\implies (\alpha+p(1-\alpha)^2)\sum_{t=0}^{T-1}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2\leq&
+(1-p)\frac{2\alpha^2\sigma^2}{B}T
++(1-p)(1-\alpha)^2\frac{2\eta^2}{B}c_\gamma^2\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2+\nonumber\\
+&p\frac{2\sigma^2}{S_0}T+2\mathbb{E}||g_0-\nabla_\theta J(\theta_0)||^2
+\end{split}\\
+\end{align}
+
+\vspace{-1em}
+\begin{align}
+\begin{split}
+\implies
+\sum^{T-1}_{t=0}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2\leq&
+\frac{1-p}{\alpha+p(1-\alpha)^2}\frac{2\alpha^2\sigma^2}{B}T
++\frac{(1-p)(1-\alpha)^2}{\alpha+p(1-\alpha)^2}\frac{2\eta^2}{B}c_\gamma^2\sum_{t=0}^{t-1}\mathbb{E}||g_t||^2\\
+&
++\frac{2*p*T\sigma^2}{S_0}* \frac{1}{\alpha+p(1-\alpha)^2}+\frac{2}{(\alpha+p(1-\alpha)^2)}\mathbb{E}||g_0-\nabla_\theta J(\theta_0)||^2
+\end{split}\nonumber\\
+\end{align}
+
+\end{proof}
+
+\subsubsection*{Proof of the main theorem \ref{tm:main_theorem}}
+\begin{proof}[]
+\\
+Let Us prove that PAGE-STORM-PG can reach $\epsilon$-accurate solution after $T(\epsilon)$ iterations. In other words,
+
+$$
+\forall\epsilon, \exist \text{ $T(\epsilon)$ such that}
+$$
+
+$$
+\frac{1}{T}\sum_{t=0}^{T-1}\mathbb{E}||\nabla_\theta J(\theta_t)||^2\leq\epsilon
+$$
+
+$$
+\text{ where }J(\theta)=\mathbb{E}_{\tau\sim p(\cdot|\theta)}R(\tau) \coloneqq \mathbb{E}_{\tau\sim p(\cdot|\theta)}[\sum_{t=0}^{T-1}\gamma^tr(s_t,a_s)]
+$$
+
+Let us apply the $L_d$-smoothness of $J(\theta)$ to get a general estimation bound of $J(\theta_{t+1})$ :
+
+\begin{align}
+\begin{split}
+J(\theta_{t+1})=J(\theta_t+\eta g_t)
+& \geq 
+J(\theta_t)
++\eta \langle g_t,\nabla_\theta J(\theta_t)\rangle
+-\frac{\nabla^2 L_d}{2}||g_t||^2 = J(\theta_t)
++(\frac{\eta}{2}
+-\frac{\eta^2L_d}{2})||g_t||^2
++\frac{\eta}{2}||\nabla_\theta J(\theta_t)||^2-\nonumber\\
+&\frac{\eta}{2}||g_t-\nabla_\theta J(\theta_t)||^2\nonumber\\
+&
+\geq J(\theta_t)
++\frac{\eta}{4}||g_t||^2
++\frac{\eta}{2}||\nabla_\theta J(\theta_t)||^2
+-\frac{\eta}{2}||g_t-\nabla_\theta J(\theta_t)||^2\\
+\end{split}\\
+\end{align}
+
+
+Summing $J(\theta_{t+1})-J(\theta_t)$ over T, we get the inequality bellow :
+
+\begin{align}
+\begin{split}
+J(\theta_0)-J(\theta_T)
+\leq -\frac{\eta}{2}\sum_{t=0}^{T-1}||\nabla_\theta J(\theta_t)||^2-\frac{\eta}{4}\sum_{t=0}^{T-1}||g_t||^2
++\frac{\eta}{2}\sum_{t=0}^{T-1}||g_t-\nabla_\theta J(\theta_t)||^2
+\end{split}
+\end{align}
+
+
+Definition : $\Delta\coloneqq f^*$-$J(\theta_0)$-constant representing the function value gap between the initialization and the optimal value $f^*$
+
+taking the expectation :
+
+
+$$
+-\Delta
+\leq
+J(\theta_0)-J(\theta_T)
+\leq
+-\frac{\eta}{2}\sum_{t=0}^{T-1}||\nabla_\theta J(\theta_t)||^2
+-\frac{\eta}{4}\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2
++\frac{\eta}{2}\sum_{t=0}^{T-1}\mathbb{E}||g_t-\nabla_\theta J(\theta_t)||^2
+
+\leq [\text{apply lemma \ref{lm:sum_exp_error}}]
+\leq
+- \frac{\eta}{2} \sum_{t=0}^{T-1}\mathbb{E}||\nabla_\theta J(\theta_t)||^2
+-\frac{\eta}{4}\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2
++\frac{\eta}{\alpha +p(1-\alpha)^2}\frac{(1-p)\alpha^2 \sigma^2 T}{B}
++\frac{T p \sigma^2\eta}{S_0(\alpha + p(1-\alpha)^2)}
++\frac{\sigma^2 \eta}{s_0 (\alpha + p(1-\alpha^2))}
++\frac{\eta}{\alpha+p(1-\alpha)^2}(1-p)(1-\alpha)^2\frac{C_\gamma^2\eta^2}{B}
+\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2
+$$
+
+$$
+=-\frac{\eta}{2}\sum_{t=0}^{T-1}\mathbb{E}||\nabla_\theta J(\theta_t)||^2
+-\frac{\eta}{4}\left(1-\frac{4\eta^2(1-p)(1-\alpha)^2}{\alpha+p(1-\alpha)^2}\frac{C_\gamma^2}{B}\right)\sum_{t=0}^{T-1}\mathbb{E}||g_t||^2
+$$
+
+$$
++
+\frac \eta{\alpha+p(1-\alpha)^2}\frac{(1-p)\alpha^2\sigma^2}B T
++\frac{Tp\sigma^2}{S_0}\frac \eta {(\alpha+p(1-\alpha)^2)}
++\frac{\sigma^2 \eta}{S_0(\alpha+p(1-\alpha)^2)}
+$$
+
+Our pick for $\eta$ that satisfies
+$$
+1-\frac{4\eta^2(1-p)(1-\alpha)^2C_\gamma^2}{(\alpha+p(1-\alpha)^2)B}
+\geq 0
+$$
+Hence :
+$$
+\frac \eta 2 \sum_{t=0}^{T-1} \mathbb{E}||\nabla_\theta J(\theta_t)||^2
+\leq \Delta+\frac \eta {\alpha+p(1-\alpha)^2}\frac{(1-p)\alpha^2\sigma^2}B T
++\frac{Tp\sigma^2}{S_0}\frac{\eta}{\alpha+p(1-\alpha)^2}
++\frac{\sigma^2\eta}{S_0(\alpha+p(1-\alpha)^2)}
+$$
+
+$$
+\implies 
+\frac 1 T \sum_{t=0}^{T-1} \mathbb{E}||\nabla_\theta J(\theta_t)||^2 
+\leq
+\frac 2 \eta \frac \Delta T + \frac{2\alpha^2(1-p)}{(\alpha+p(1-\alpha)^2)}\frac {\sigma^2}B
++\frac{2p\sigma^2}{S_0}\frac 1{(\alpha+p(1-\alpha)^2)}
++\frac{2\sigma^2}{TS_0}\frac 1{(\alpha+p(1-\alpha)^2)}
+$$
+
+\end{proof}
+\end{document}
